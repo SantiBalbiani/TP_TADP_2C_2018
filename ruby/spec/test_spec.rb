@@ -40,8 +40,8 @@ describe PatternMatching do
       end
 
       it 'devuelve false si no es del tipo correcto' do
-        expect(type(Integer).call('5')).to be true
-        expect(type(Symbol).call("a")).to be true
+        expect(type(Integer).call('5')).to be false
+        expect(type(Symbol).call("a")).to be false
       end
     end
 
@@ -65,7 +65,7 @@ describe PatternMatching do
 
       it 'da false si los elementos coinciden, el tamaño no, y matches_size? = true' do
         una_lista = [1, 2, 3, 4]
-        expect(list([1, 2, 3]).call(una_lista)).to be true
+        expect(list([1, 2, 3]).call(una_lista)).to be false
       end
     end
 
