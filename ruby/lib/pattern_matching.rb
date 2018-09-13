@@ -30,6 +30,39 @@ class PatternMatching
     Matcher.new { |obj| methods.all?(proc { |method| obj.methods.include? method}) }
   end
 
+  def list (a_list, match_size = true) #No me deja ponerle el ? a match_size? -- Mati
+    bindings = a_list.map do |matcher|
+      if(matcher.respond_to? :bindings)
+        matcher.bindings
+      end
+    end
+    pos = -1
+    bindings = bindings.map do |binds|
+      pos += 1
+      if(binds)
+        binds.map do |binder|
+          if(binder)
+            ListBinder.new(binder, pos)
+          end
+        end
+      end
+    end
+    bindings.compact!.flatten!
+
+    Matcher.new (bindings) do |obj|
+      cur_element = -1
+      obj.is_a? Array and (!match_size or a_list.length == obj.length) and
+          a_list.all? do |element|
+            cur_element += 1
+            if(element.class.include? Combinators)
+              element.call(obj[cur_element])
+            else
+              element == obj
+            end
+          end
+    end
+  end
+
   def with (*matchers, &b)
     if(matchers.all?(proc { |matcher| matcher.call(@obj) }))
       matchers.each { |matcher| matcher.do_bindings @obj, self }
@@ -120,12 +153,12 @@ class Binder
 end
 
 class ListBinder
-  def initialize (name, pos)
-    @name = name
+  def initialize (binder, pos)
+    @binder = binder
     @pos = pos
   end
 
   def bind (pat_mtc, obj)
-    pat_mtc.define_singleton_method (@name) { obj[@pos] }
+    @binder.bind pat_mtc, obj[@pos]
   end
 end
