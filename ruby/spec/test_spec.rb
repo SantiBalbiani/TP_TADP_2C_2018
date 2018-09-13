@@ -63,7 +63,7 @@ describe 'PatternMatching' do
       it 'da false si los elementos coinciden, el tamaño no, y matches_size? = true' do
         una_lista = [1, 2, 3, 4]
         pat_mtc = PatternMatching.new nil
-        expect(pat_mtc.list([1, 2, 3]).call(una_lista)).to be true
+        expect(pat_mtc.list([1, 2, 3]).call(una_lista)).to be false
       end
     end
 
