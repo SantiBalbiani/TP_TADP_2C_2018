@@ -44,8 +44,36 @@ class PatternMatching
   end
 end
 
+module Combinators
+  def concat_bindings (*matchers)
+    new_bindings = matchers.map{ |matcher| matcher.bindings}
+    new_bindings.flatten!.concat self.bindings
+    new_bindings
+  end
+
+  def and (*matchers)
+    cloned_pattern = self.pattern.clone
+    new_bindings = concat_bindings(*matchers)
+    Matcher.new(new_bindings) { |obj| cloned_pattern.call obj and matchers.all? {|matcher| matcher.call obj } }
+  end
+
+  def or (*matchers)
+    cloned_pattern = self.pattern.clone
+    new_bindings = concat_bindings(*matchers)
+    Matcher.new(new_bindings) { |obj| cloned_pattern.call obj or matchers.any? {|matcher| matcher.call obj } }
+  end
+
+  def not
+    cloned_pattern = self.pattern.clone
+    Matcher.new(self.bindings) { |obj| !cloned_pattern.call obj }
+  end
+end
+
 class Matcher
-  attr_reader :bindings
+  include Combinators
+
+  attr_reader :bindings, :pattern
+
   def initialize (bindings = [], &b)
     @bindings = bindings
     @pattern = b
@@ -57,25 +85,6 @@ class Matcher
 
   def do_bindings (obj, pat_mtc)
     self.bindings.each { |bind| pat_mtc.define_singleton_method bind { obj } }
-  end
-
-  def or (*matchers)
-    cloned_pattern = @pattern.clone
-    new_bindings = matchers.map{ |matcher| matcher.bindings}
-    new_bindings.flatten!.concat self.bindings
-    Matcher.new(new_bindings) { |obj| cloned_pattern.call obj or matchers.any? {|matcher| matcher.call obj } }
-  end
-
-  def and (*matchers)
-    cloned_pattern = @pattern.clone
-    new_bindings = matchers.map{ |matcher| matcher.bindings}
-    new_bindings.flatten!.concat self.bindings
-    Matcher.new(new_bindings) { |obj| cloned_pattern.call obj and matchers.all? (proc {|matcher| matcher.call obj }) }
-  end
-
-  def not
-    cloned_pattern = @pattern.clone
-    Matcher.new (self.bindings) { |obj| ! cloned_pattern.call obj }
   end
 end
 
@@ -92,19 +101,7 @@ class Symbol
     [self]
   end
 
-  def or (*matchers)
-    new_bindings = matchers.map { |matcher| matcher.bindings}
-    new_bindings.flatten!.concat self.bindings
-    Matcher.new (new_bindings) { |obj| true }
-  end
-
-  def and (*matchers)
-    new_bindings = matchers.map{ |matcher| matcher.bindings}
-    new_bindings.flatten!.concat self.bindings
-    Matcher.new (new_bindings) { |obj| matchers.all? (proc {|matcher| matcher.call obj }) }
-  end
-
-  def not
-    Matcher.new([self]) { |obj| false }
+  def pattern
+    proc { true }
   end
 end
