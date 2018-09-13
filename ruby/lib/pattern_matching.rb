@@ -84,11 +84,14 @@ class Matcher
   end
 
   def do_bindings (obj, pat_mtc)
-    self.bindings.each { |bind| pat_mtc.define_singleton_method bind { obj } }
+    self.bindings.each { |binder| binder.bind(pat_mtc, obj)}
   end
 end
 
 class Symbol
+
+  include Combinators
+
   def call (obj)
     true
   end
@@ -98,10 +101,31 @@ class Symbol
   end
 
   def bindings
-    [self]
+    [Binder.new(self)]
   end
 
   def pattern
     proc { true }
+  end
+end
+
+class Binder
+  def initialize (name)
+    @name = name
+  end
+
+  def bind (pat_mtc, obj)
+    pat_mtc.define_singleton_method (@name) { obj }
+  end
+end
+
+class ListBinder
+  def initialize (name, pos)
+    @name = name
+    @pos = pos
+  end
+
+  def bind (pat_mtc, obj)
+    pat_mtc.define_singleton_method (@name) { obj[@pos] }
   end
 end

@@ -155,5 +155,43 @@ describe 'PatternMatching' do
         expect(resultado2).to eq(2)
       end
     end
+
+    describe 'bindings' do
+      it 'simple' do
+        resultado = false
+        matches?(true) do
+          with(:a) { resultado = a }
+        end
+
+        expect(resultado).to be true
+      end
+
+      it 'simple + patron' do
+        resultado = false
+        matches?(true) do
+          with(:a, val(true)) { resultado = a }
+        end
+
+        expect(resultado).to be true
+      end
+
+      it 'simple y condicion' do
+        resultado = false
+        matches?(true) do
+          with(:a.and(val(true))) { resultado = a }
+        end
+
+        expect(resultado).to be true
+      end
+
+      it 'condicion y simple' do
+        resultado = false
+        matches?(true) do
+          with(val(true).and(:a)) { resultado = a }
+        end
+
+        expect(resultado).to be true
+      end
+    end
   end
 end
