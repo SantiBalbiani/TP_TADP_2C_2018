@@ -1,7 +1,7 @@
 class PatternFound < Exception
 end
 
-class PatternNoFound < Exception
+class PatternNotFound < Exception
 end
 
 def matches? (obj, &b)
@@ -9,7 +9,7 @@ def matches? (obj, &b)
     PatternMatching.new(obj).instance_eval &b
   rescue PatternFound
   else
-    raise PatternNoFound, "Reached end of pattern matching block"
+    raise PatternNotFound, "Reached end of pattern matching block"
   end
 end
 
@@ -31,23 +31,14 @@ class PatternMatching
   end
 
   def list (a_list, match_size = true) #No me deja ponerle el ? a match_size? -- Mati
-    bindings = a_list.map do |matcher|
-      if(matcher.respond_to? :bindings)
-        matcher.bindings
-      end
-    end
+    bindings = a_list.map { |matcher|  matcher.bindings if matcher.respond_to? :bindings }
     pos = -1
     bindings = bindings.map do |binds|
       pos += 1
-      if(binds)
-        binds.map do |binder|
-          if(binder)
-            ListBinder.new(binder, pos)
-          end
-        end
-      end
+      binds.map { |binder| ListBinder.new(binder, pos) } if binds
     end
-    bindings.compact!.flatten!
+    bindings.compact!
+    bindings.flatten!
 
     Matcher.new (bindings) do |obj|
       cur_element = -1
@@ -55,6 +46,7 @@ class PatternMatching
       a_list.all? do |element|
         cur_element += 1
         if element.class.included_modules.include? Combinators
+         #Otra alternativa seria element.respond_to? call pero esa tiene el problema de incluir a los Proc
           element.call(obj[cur_element])
         else
           element == obj[cur_element]
