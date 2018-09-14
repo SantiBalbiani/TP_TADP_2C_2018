@@ -58,6 +58,18 @@ describe 'PatternMatching' do
       it 'da false si los elementos coinciden, el tamaño no, y matches_size? = true' do
         expect(pat_mtc.list([1, 2, 3]).call(una_lista)).to be false
       end
+
+      it 'da true si los patrones coinciden' do
+        expect(pat_mtc.list([pat_mtc.val(1), pat_mtc.duck(:+), pat_mtc.type(Integer), pat_mtc.val(4)]).call(una_lista)).to be true
+      end
+
+      it 'da false si alguno de los patrones no coincide' do
+        expect(pat_mtc.list([pat_mtc.val(1), pat_mtc.duck(:length), pat_mtc.type(Integer), pat_mtc.val(4)]).call(una_lista)).to be false
+      end
+
+      it 'da true mezclando patrones y valores' do
+        expect(pat_mtc.list([pat_mtc.val(1), 2, pat_mtc.type(Integer), 4]).call(una_lista)).to be true
+      end
     end
 
     describe 'matcher de pato' do
@@ -154,6 +166,14 @@ describe 'PatternMatching' do
         expect(resultado1).to eq(1)
         expect(resultado2).to eq(2)
       end
+
+      it 'levanta PatterNotFound si termina los with sin otherwise' do
+        expect do
+          matches?(false) do
+            with(val(true)) {}
+          end
+        end.to raise_error(PatternNotFound)
+      end
     end
 
     describe 'bindings' do
@@ -191,6 +211,51 @@ describe 'PatternMatching' do
         end
 
         expect(resultado).to be true
+      end
+
+      it 'lista' do
+        resultado = false
+        matches?([true, false, true, false]) do
+          with(list([:a, :b, :c, :d])) {resultado = a}
+        end
+
+        expect(resultado).to be true
+      end
+
+      it 'lista parcial' do
+        resultado = false
+        matches?([1, true, 3]) do
+          with(list([1, :a, 3])) {resultado = a}
+        end
+
+        expect(resultado).to be true
+      end
+
+      it 'lista y simple' do
+        resultado = 0
+        matches?([1, 1]) do
+          with(list([:a, :b]).and(:arr)) { resultado = a + b + arr.first + arr.last }
+        end
+
+        expect(resultado).to eq 4
+      end
+
+      it 'simple y lista' do
+        resultado = 0
+        matches?([1, 1]) do
+          with(:arr.and(list([:a, :b]))) { resultado = a + b + arr.first + arr.last }
+        end
+
+        expect(resultado).to eq 4
+      end
+
+      it 'simple + lista' do
+        resultado = 0
+        matches?([1, 1]) do
+          with(:arr, list([:a, :b])) { resultado = a + b + arr.first + arr.last }
+        end
+
+        expect(resultado).to eq 4
       end
     end
   end
