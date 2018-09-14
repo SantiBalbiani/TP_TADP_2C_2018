@@ -51,15 +51,15 @@ class PatternMatching
 
     Matcher.new (bindings) do |obj|
       cur_element = -1
-      obj.is_a? Array and (!match_size or a_list.length == obj.length) and
-          a_list.all? do |element|
-            cur_element += 1
-            if(element.class.include? Combinators)
-              element.call(obj[cur_element])
-            else
-              element == obj
-            end
-          end
+      obj.is_a? Array and (not match_size or a_list.length == obj.length) and
+      a_list.all? do |element|
+        cur_element += 1
+        if element.class.included_modules.include? Combinators
+          element.call(obj[cur_element])
+        else
+          element == obj[cur_element]
+        end
+      end
     end
   end
 
@@ -87,7 +87,7 @@ module Combinators
   def and (*matchers)
     cloned_pattern = self.pattern.clone
     new_bindings = concat_bindings(*matchers)
-    Matcher.new(new_bindings) { |obj| cloned_pattern.call obj and matchers.all? {|matcher| matcher.call obj } }
+    Matcher.new(new_bindings) { |obj| cloned_pattern.call obj and matchers.all? (proc {|matcher| matcher.call obj }) }
   end
 
   def or (*matchers)
