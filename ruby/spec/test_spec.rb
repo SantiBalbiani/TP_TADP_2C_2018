@@ -1,3 +1,6 @@
+require 'rspec'
+require_relative '../lib/pattern_matching'
+
 describe 'PatternMatching' do
 
   describe 'Test unitarios de Pattern Matching' do
@@ -211,6 +214,42 @@ describe 'PatternMatching' do
         end
 
         expect(resultado).to be true
+      end
+
+      it 'bindings en matchers previos no afectan a los siguientes' do
+        resultado = 0
+        matches?([1, 10, 100]) do
+          with(list([:a, 10, 90])) { resultado += a }
+          with(list([:a, :b, 100])) { resultado += b }
+        end
+
+        expect(resultado).to be 10
+      end
+
+      it 'el contexto del binding no depende del lugar de construccion' do
+        resultado = 0
+        p = proc { resultado += a }
+
+        matches?(1) do
+          with(:a, &p)
+        end
+
+        expect(resultado).to be 1
+      end
+
+      it 'solo se bindea la variable del or que matchea' do
+        rA = 0
+        rB = 0
+
+        matches?(4) do
+          with((val(4).and(:a)).or(val(9).and(:b))) do
+            rA += a
+            rB += b
+          end
+        end
+
+        expect(rA).to be 4
+        expect(rB).to be 0
       end
 
       it 'lista' do
