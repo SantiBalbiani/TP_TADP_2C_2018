@@ -4,6 +4,7 @@ end
 class PatternNotFound < Exception
 end
 
+class Object
 # TODO hacer explícito a que clase le están definiendo el "matches?"
 def matches? (obj, &b)
   begin
@@ -14,6 +15,7 @@ def matches? (obj, &b)
   else
     raise PatternNotFound, "Reached end of pattern matching block"
   end
+end
 end
 
 class PatternMatching
