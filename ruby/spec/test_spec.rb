@@ -136,7 +136,7 @@ describe 'PatternMatching' do
     describe 'matches?' do
       it 'ejecuta el bloque al encontrar el patron' do
         resultado = false
-        matches?(5) do
+        PatternMatching.matches?(5) do
           with(val(5)) {resultado = true}
         end
         expect(resultado).to be true
@@ -144,7 +144,7 @@ describe 'PatternMatching' do
 
       it 'deja de buscar al encontrar un patron correcto' do
         resultado = 0
-        matches?(5) do
+        PatternMatching.matches?(5) do
           with(type(String)) { resultado = 1 }
           with(val(5)) {resultado = 2}
           with(duck(:+)) {resultado = 3}
@@ -154,13 +154,13 @@ describe 'PatternMatching' do
 
       it 'ejecuta el bloque de otherwise si no encuentra patron' do
         resultado1 = 0
-        matches?(5) do
+        PatternMatching.matches?(5) do
           otherwise {resultado1 = 1}
           resultado1 = 2
         end
 
         resultado2 = 0
-        matches?(5) do
+        PatternMatching.matches?(5) do
           with(type(String)) {resultado2 = 1}
           otherwise {resultado2 = 2}
           resultado2 = 3
@@ -172,7 +172,7 @@ describe 'PatternMatching' do
 
       it 'levanta PatterNotFound si termina los with sin otherwise' do
         expect do
-          matches?(false) do
+          PatternMatching.matches?(false) do
             with(val(true)) {}
           end
         end.to raise_error(PatternNotFound)
@@ -180,7 +180,7 @@ describe 'PatternMatching' do
 
       it 'retorna el valor del bloque que se ejecuto' do
         ret = false
-        ret = matches? (2) do
+        ret = PatternMatching.matches? (2) do
           with(val(2)) { true }
         end
         expect(ret).to be true
@@ -190,7 +190,7 @@ describe 'PatternMatching' do
     describe 'bindings' do
       it 'simple' do
         resultado = false
-        matches?(true) do
+        PatternMatching.matches?(true) do
           with(:a) { resultado = a }
         end
 
@@ -199,7 +199,7 @@ describe 'PatternMatching' do
 
       it 'simple + patron' do
         resultado = false
-        matches?(true) do
+        PatternMatching.matches?(true) do
           with(:a, val(true)) { resultado = a }
         end
 
@@ -208,7 +208,7 @@ describe 'PatternMatching' do
 
       it 'simple y condicion' do
         resultado = false
-        matches?(true) do
+        PatternMatching.matches?(true) do
           with(:a.and(val(true))) { resultado = a }
         end
 
@@ -217,7 +217,7 @@ describe 'PatternMatching' do
 
       it 'condicion y simple' do
         resultado = false
-        matches?(true) do
+        PatternMatching.matches?(true) do
           with(val(true).and(:a)) { resultado = a }
         end
 
@@ -226,7 +226,7 @@ describe 'PatternMatching' do
 
       it 'bindings en matchers previos no afectan a los siguientes' do
         resultado = 0
-        matches?([1, 10, 100]) do
+        PatternMatching.matches?([1, 10, 100]) do
           with(list([:a, 10, 90])) { resultado += a }
           with(list([:a, :b, 100])) { resultado += b }
         end
@@ -238,7 +238,7 @@ describe 'PatternMatching' do
         resultado = 0
         p = proc { resultado += a }
 
-        matches?(1) do
+        PatternMatching.matches?(1) do
           with(:a, &p)
         end
 
@@ -250,7 +250,7 @@ describe 'PatternMatching' do
         rB = 0
 
         p = proc do
-          matches?(4) do
+          PatternMatching.matches?(4) do
             with((val(4).and(:a)).or(val(9).and(:b))) do
               rA += a
               rB += b
@@ -263,7 +263,7 @@ describe 'PatternMatching' do
 
       it 'lista' do
         resultado = false
-        matches?([true, false, true, false]) do
+        PatternMatching.matches?([true, false, true, false]) do
           with(list([:a, :b, :c, :d])) {resultado = a}
         end
 
@@ -272,7 +272,7 @@ describe 'PatternMatching' do
 
       it 'lista parcial' do
         resultado = false
-        matches?([1, true, 3]) do
+        PatternMatching.matches?([1, true, 3]) do
           with(list([1, :a, 3])) {resultado = a}
         end
 
@@ -281,7 +281,7 @@ describe 'PatternMatching' do
 
       it 'lista y simple' do
         resultado = 0
-        matches?([1, 1]) do
+        PatternMatching.matches?([1, 1]) do
           with(list([:a, :b]).and(:arr)) { resultado = a + b + arr.first + arr.last }
         end
 
@@ -290,7 +290,7 @@ describe 'PatternMatching' do
 
       it 'simple y lista' do
         resultado = 0
-        matches?([1, 1]) do
+        PatternMatching.matches?([1, 1]) do
           with(:arr.and(list([:a, :b]))) { resultado = a + b + arr.first + arr.last }
         end
 
@@ -299,7 +299,7 @@ describe 'PatternMatching' do
 
       it 'simple + lista' do
         resultado = 0
-        matches?([1, 1]) do
+        PatternMatching.matches?([1, 1]) do
           with(:arr, list([:a, :b])) { resultado = a + b + arr.first + arr.last }
         end
 

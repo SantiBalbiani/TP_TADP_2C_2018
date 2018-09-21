@@ -4,8 +4,15 @@ end
 class PatternNotFound < Exception
 end
 
-class Object
-  def matches?(obj, &b)
+class PatternMatching
+
+  attr_reader :ret
+
+  def initialize(obj)
+    @obj = obj
+  end
+
+  def self.matches?(obj, &b)
     inst_pttrn_mtc = PatternMatching.new obj
     begin
       inst_pttrn_mtc.instance_eval &b
@@ -14,15 +21,6 @@ class Object
     else
       raise PatternNotFound, "Reached end of pattern matching block"
     end
-  end
-end
-
-class PatternMatching
-
-  attr_reader :ret
-
-  def initialize(obj)
-    @obj = obj
   end
 
   def val(a_value)
