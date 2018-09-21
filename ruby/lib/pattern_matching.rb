@@ -98,14 +98,20 @@ class OrMatcher
 
   def initialize(children)
     @children = children
+    @checked_objects = Hash.new
   end
 
   def call(obj)
-    @children.any? { |child| child.call(obj) }
+    results = []
+    @children.each { |child| results.push child.call(obj) }
+    @checked_objects[obj] = results
+    results.any? { |result| result }
   end
 
   def do_bindings(obj, pttrn_mtc)
-    @children.each { |child| child.do_bindings(obj, pttrn_mtc) if child.call(obj) }
+    @children.each_index do |index|
+      @children[index].do_bindings(obj, pttrn_mtc) if (@checked_objects.has_key? obj and @checked_objects[obj][index]) or child.call(obj)
+    end
   end
 end
 
