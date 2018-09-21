@@ -5,12 +5,12 @@ class PatternNotFound < Exception
 end
 
 class Object
-  def matches? (obj, &b)
-    inst_pttn_mtc = PatternMatching.new(obj)
+  def matches?(obj, &b)
+    inst_pttrn_mtc = PatternMatching.new obj
     begin
-      inst_pttn_mtc.instance_eval &b
+      inst_pttrn_mtc.instance_eval &b
     rescue PatternFound
-      inst_pttn_mtc.ret
+      inst_pttrn_mtc.ret
     else
       raise PatternNotFound, "Reached end of pattern matching block"
     end
@@ -18,48 +18,50 @@ class Object
 end
 
 class PatternMatching
+
   attr_reader :ret
-  def initialize (obj)
+
+  def initialize(obj)
     @obj = obj
   end
 
-  def val (a_value)
+  def val(a_value)
     BasicMatcher.new { |obj| obj == a_value}
   end
 
-  def type (a_type)
+  def type(a_type)
     BasicMatcher.new { |obj| obj.is_a? a_type}
   end
 
-  def duck (*methods)
-    BasicMatcher.new { |obj| methods.all?(proc { |method| obj.methods.include? method}) }
+  def duck(*methods)
+    BasicMatcher.new { |obj| methods.all? { |method| obj.methods.include? method} }
   end
 
-  def list (a_list, match_size = true) #No me deja ponerle el ? a match_size? -- Mati
+  def list(a_list, match_size = true) #No me deja ponerle el ? a match_size? -- Mati
     ListMatcher.new a_list, match_size
   end
 
-  def with (*matchers, &b)
-    if matchers.all?(proc { |matcher| matcher.call(@obj) })
+  def with(*matchers, &b)
+    if matchers.all? { |matcher| matcher.call @obj }
       matchers.each { |matcher| matcher.do_bindings @obj, self }
       @ret = self.instance_eval &b
       raise PatternFound
     end
   end
 
-  def otherwise (&b)
+  def otherwise(&b)
     @ret = self.instance_eval &b
     raise PatternFound
   end
 end
 
 module Combinators
-  def and (*matchers)
+  def and(*matchers)
     matchers.push self
     AndMatcher.new matchers
   end
 
-  def or (*matchers)
+  def or(*matchers)
     matchers.push self
     OrMatcher.new matchers
   end
@@ -110,7 +112,7 @@ end
 class NotMatcher
   include Matcher
 
-  def initialize (child)
+  def initialize(child)
     @child = child
   end
 
@@ -119,7 +121,7 @@ class NotMatcher
   end
 
   def do_bindings(obj, pttrn_mtc)
-    @child.do_bindings(obj, pttrn_mtc)
+    @child.do_bindings obj, pttrn_mtc
   end
 end
 
@@ -162,14 +164,14 @@ class BasicMatcher
     @block.call obj
   end
 
-  def do_bindings(obj, pttrn_mtc)
+  def do_bindings(_obj, _pttrn_mtc)
   end
 end
 
 class Symbol
   include Matcher
 
-  def call(obj)
+  def call(_obj)
     true
   end
 
