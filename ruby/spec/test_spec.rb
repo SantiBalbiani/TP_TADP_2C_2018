@@ -177,6 +177,14 @@ describe 'PatternMatching' do
           end
         end.to raise_error(PatternNotFound)
       end
+
+      it 'retorna el valor del bloque que se ejecuto' do
+        ret = false
+        ret = matches? (2) do
+          with(val(2)) { true }
+        end
+        expect(ret).to be true
+      end
     end
 
     describe 'bindings' do
@@ -241,15 +249,16 @@ describe 'PatternMatching' do
         rA = 0
         rB = 0
 
-        matches?(4) do
-          with((val(4).and(:a)).or(val(9).and(:b))) do
-            rA += a
-            rB += b
+        p = proc do
+          matches?(4) do
+            with((val(4).and(:a)).or(val(9).and(:b))) do
+              rA += a
+              rB += b
+            end
           end
         end
 
-        expect(rA).to be 4
-        expect(rB).to be 0
+        expect(&p).to raise_error NameError
       end
 
       it 'lista' do
