@@ -102,9 +102,13 @@ class OrMatcher
   end
 
   def call(obj)
-    results = []
-    @children.each { |child| results.push child.call(obj) }
-    @checked_objects[obj] = results
+    if @checked_objects.has_key? obj
+      results = @checked_objects[obj]
+    else
+      results = []
+      @children.each { |child| results.push child.call(obj) }
+      @checked_objects[obj] = results
+    end
     results.any? { |result| result }
   end
 
