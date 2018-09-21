@@ -5,20 +5,20 @@ class PatternNotFound < Exception
 end
 
 class Object
-# TODO hacer explícito a que clase le están definiendo el "matches?"
-def matches? (obj, &b)
-  begin
-    PatternMatching.new(obj).instance_eval &b
-  rescue PatternFound
-    # TODO "matches?" tiene que retornar lo que retorne el bloque del pattern que matcheó
-    #   (sino lo único que puede hacer el bloque son mutaciones)
-  else
-    raise PatternNotFound, "Reached end of pattern matching block"
+  def matches? (obj, &b)
+    inst_pttn_mtc = PatternMatching.new(obj)
+    begin
+      inst_pttn_mtc.instance_eval &b
+    rescue PatternFound
+      inst_pttn_mtc.ret
+    else
+      raise PatternNotFound, "Reached end of pattern matching block"
+    end
   end
-end
 end
 
 class PatternMatching
+  attr_reader :ret
   def initialize (obj)
     @obj = obj
   end
@@ -72,16 +72,13 @@ class PatternMatching
   def with (*matchers, &b)
     if matchers.all?(proc { |matcher| matcher.call(@obj) })
       matchers.each { |matcher| matcher.do_bindings @obj, self }
-      # TODO usando "call" en el bloque del "with" no están seteando el self
-      # TODO   fue una casualidad que todos sus bloques de los "with" están creados
-      # TODO   dentro del bloque al que le hacen instance_eval
-      b.call
+      @ret = self.instance_eval &b
       raise PatternFound
     end
   end
 
   def otherwise (&b)
-    b.call
+    @ret = self.instance_eval &b
     raise PatternFound
   end
 end
@@ -98,7 +95,7 @@ module Combinators
   def and (*matchers)
     new_bindings = concat_bindings(*matchers)
     # TODO "and" y "all?" es lógica repetida, agreguen directamente el matcher actual a la lista y usen solo "all?"
-    Matcher.new(new_bindings) { |obj| call(obj) and matchers.all? (proc {|matcher| matcher.call obj }) }
+    Matcher.new(new_bindings) { |obj| call(obj) and matchers.all? (proc { |matcher| matcher.call obj }) }
   end
 
   def or (*matchers)
