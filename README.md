@@ -1,3 +1,2 @@
-# TADP
-
-Este repositorio tiene la estructura básica para arrancar a _darle átomos_ a la materia! :rocket:
+Idea que tuve para resolver el OrMatcher con Hash, puede ser completamente ignorada.
+[MATI]
