@@ -5,6 +5,9 @@ class PatternNotFound < Exception
 end
 
 class Object
+  # Dos alternativas para matches? son:
+  # -Hacerlo un metodo de clase de PatternMatching (ver rama no_extra_monkey para esto)
+  # -Colocar en un module para que se incluya al nivel que el usuario quiera usarlo
   def matches?(obj, &b)
     inst_pttrn_mtc = PatternMatching.new obj
     begin
