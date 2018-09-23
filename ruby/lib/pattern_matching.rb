@@ -55,7 +55,9 @@ class PatternMatching
   end
 end
 
-module Combinators
+#Composite Pattern
+
+module Matcher
   def and(*matchers)
     matchers.push self
     AndMatcher.new matchers
@@ -71,41 +73,35 @@ module Combinators
   end
 end
 
-#Composite Pattern
-
-module Matcher
-  include Combinators
-end
-
-class AndMatcher
+class ComplexMatcher
   include Matcher
 
   def initialize(children)
     @children = children
   end
 
+  def do_bindings(obj, pttrn_mtc)
+    @children.each { |child| child.do_bindings(obj, pttrn_mtc) if binding_condition(child, obj)}
+  end
+end
+
+class AndMatcher < ComplexMatcher
   def call(obj)
     @children.all? { |child| child.call(obj) }
   end
 
-  def do_bindings(obj, pttrn_mtc)
-    @children.each { |child| child.do_bindings(obj, pttrn_mtc) }
+  def binding_condition(_child, _obj)
+    true
   end
 end
 
-class OrMatcher
-  include Matcher
-
-  def initialize(children)
-    @children = children
-  end
-
+class OrMatcher < ComplexMatcher
   def call(obj)
     @children.any? { |child| child.call(obj) }
   end
 
-  def do_bindings(obj, pttrn_mtc)
-    @children.each { |child| child.do_bindings(obj, pttrn_mtc) if child.call(obj) }
+  def binding_condition(child, obj)
+    child.call(obj)
   end
 end
 
@@ -134,6 +130,7 @@ class ListMatcher
   end
 
   def call(obj)
+    #Se puede modificar para que zippee los array en lugar de usar un indice
     index = -1
     obj.is_a? Array and (not @matches_size or @patterns.length == obj.length) and  @patterns.all? do |pattern|
       index += 1
@@ -146,6 +143,7 @@ class ListMatcher
   end
 
   def do_bindings(obj, pttrn_mtc)
+    #Se puede modificar para que zippee los array en lugar de usar un indice
     @patterns.each_index do |index|
       @patterns[index].do_bindings(obj[index], pttrn_mtc) if @patterns[index].is_a? Matcher
     end
