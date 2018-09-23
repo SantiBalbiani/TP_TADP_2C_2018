@@ -73,6 +73,10 @@ describe 'PatternMatching' do
       it 'da true mezclando patrones y valores' do
         expect(pat_mtc.list([pat_mtc.val(1), 2, pat_mtc.type(Integer), 4]).call(una_lista)).to be true
       end
+
+      it 'solo compara los elementos que se pasaron si la lista es de menor tamaño' do
+        expect(pat_mtc.list([1, 2, 3, pat_mtc.val(nil).not], false).call([1, 2, 3])).to be true
+      end
     end
 
     describe 'matcher de pato' do

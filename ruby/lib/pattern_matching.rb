@@ -133,22 +133,27 @@ class ListMatcher
   end
 
   def call(obj)
+    obj.is_a? Array and (not @matches_size or @patterns.length == obj.length) and self.list_matches? obj
+  end
+
+  def do_bindings(list, pttrn_mtc)
     #Se puede modificar para que zippee los array en lugar de usar un indice
-    index = -1
-    obj.is_a? Array and (not @matches_size or @patterns.length == obj.length) and  @patterns.all? do |pattern|
-      index += 1
-      if pattern.is_a? Matcher
-        pattern.call(obj[index])
-      else
-        @patterns[index] == obj[index]
-      end
+    @patterns.each_index do |index|
+      @patterns[index].do_bindings(list[index], pttrn_mtc) if @patterns[index].is_a? Matcher
     end
   end
 
-  def do_bindings(obj, pttrn_mtc)
-    #Se puede modificar para que zippee los array en lugar de usar un indice
-    @patterns.each_index do |index|
-      @patterns[index].do_bindings(obj[index], pttrn_mtc) if @patterns[index].is_a? Matcher
+  def list_matches?(list)
+    index = -1
+    @patterns.all? do |pattern|
+      index += 1
+      if list.length <= index
+        true
+      elsif pattern.is_a? Matcher
+        pattern.call(list[index])
+      else
+        pattern == list[index]
+      end
     end
   end
 end
