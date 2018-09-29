@@ -73,6 +73,10 @@ describe 'PatternMatching' do
       it 'da true mezclando patrones y valores' do
         expect(pat_mtc.list([pat_mtc.val(1), 2, pat_mtc.type(Integer), 4]).call(una_lista)).to be true
       end
+
+      it 'solo compara los elementos que se pasaron si la lista es de menor tamaño' do
+        expect(pat_mtc.list([1, 2, 3, pat_mtc.val(nil).not], false).call([1, 2, 3])).to be true
+      end
     end
 
     describe 'matcher de pato' do
@@ -177,6 +181,14 @@ describe 'PatternMatching' do
           end
         end.to raise_error(PatternNotFound)
       end
+
+      it 'retorna el valor del bloque que se ejecuto' do
+        ret = false
+        ret = matches? (2) do
+          with(val(2)) { true }
+        end
+        expect(ret).to be true
+      end
     end
 
     describe 'bindings' do
@@ -241,15 +253,16 @@ describe 'PatternMatching' do
         rA = 0
         rB = 0
 
-        matches?(4) do
-          with((val(4).and(:a)).or(val(9).and(:b))) do
-            rA += a
-            rB += b
+        p = proc do
+          matches?(4) do
+            with((val(4).and(:a)).or(val(9).and(:b))) do
+              rA += a
+              rB += b
+            end
           end
         end
 
-        expect(rA).to be 4
-        expect(rB).to be 0
+        expect(&p).to raise_error NameError
       end
 
       it 'lista' do
