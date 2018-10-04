@@ -263,6 +263,18 @@ describe 'PatternMatching' do
         end
 
         expect(&p).to raise_error NameError
+        expect(rA).to be 4
+        expect(rB).to be 0
+      end
+
+      it 'solo se bindea la variable del or que matchea 2' do
+        r = matches?(4) do
+          with((val(4).and(:a)).or(val(9).and(:b))) do
+            a
+          end
+        end
+
+        expect(r).to be 4
       end
 
       it 'lista' do

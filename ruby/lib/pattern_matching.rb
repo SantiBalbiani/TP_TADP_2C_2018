@@ -49,6 +49,24 @@ class PatternMatching
       matchers.each { |matcher| matcher.do_bindings @obj, self }
       @ret = self.instance_eval &b
       raise PatternFound
+
+      # TODO detalle: la excepción puede llevarse datos y de esa manera evitan tener que guardar
+      #   el valor como estado interno del matching
+      #
+      # [11] pry(main)> class C < Exception
+      # [11] pry(main)*   def initialize(counter)
+      # [11] pry(main)*     @counter = counter
+      # [11] pry(main)*   end
+      # [11] pry(main)*   def counter
+      # [11] pry(main)*     @counter
+      # [11] pry(main)*   end
+      # [11] pry(main)* end
+      # [13] pry(main)> begin
+      # [13] pry(main)*   raise C.new(122)
+      # [13] pry(main)* rescue C => ccc
+      # [13] pry(main)*   ccc.counter
+      # [13] pry(main)* end
+      # => 122
     end
   end
 
