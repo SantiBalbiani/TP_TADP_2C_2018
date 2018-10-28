@@ -1,43 +1,67 @@
+import scala.util.Try
+
+object tipos{
+  type Accion = Resultado => Resultado
+}
+
 case class Guerrero(energia : Int,
                     energiaMaxima : Int,
                     especie : Especie,
-                    movimientos : Map[String, Movimiento] = Map[String, Movimiento](),
-                    inventario : Map[String, Item] = Map[String, Item](),
-                    turnosSiendoFajado : Short = 0) {
+                    movimientos : Map[NombreMovimiento, Movimiento] = Map[NombreMovimiento, Movimiento](),
+                    inventario : Map[Item, Movimiento] = Map[Item, Movimiento](),
+                    turnosSiendoFajado : Short = 0,
+                    estado : Estado = Normal) {
   
   require(energia > 0, "La energia no puede ser negativa")
   require(energiaMaxima > energia, "La energia no puede superar el maximo")
   require(energiaMaxima > 0, "La energia maxima no puede ser negativa")
   require(turnosSiendoFajado >= 0, "turnosSiendoFajado debe ser positivo o 0")
-  
-  def modificarEnergia(delta : Int): Estado = Estado(copy(energia = (energia + delta).max(0).min(energiaMaxima)))
+  require(energia == 0 && estado == Normal, "El guerrero no puede estar bien sin energia")
 
-  def modificarEnergiaMaxima(delta : Int): Estado = Estado(copy(energiaMaxima = energiaMaxima + delta max 0))
+  def movimientoMasEfectivoContra(oponente: Guerrero)(criterio: Resultado => Int): Option[(NombreMovimiento, Movimiento)] = {
+    val estadoInicial: Resultado = Resultado(this, oponente)
+    val filtrarMovimientosValidos: ((NombreMovimiento, Movimiento)) => Boolean =
+      (movimiento) => criterio(movimiento._2.accion(estadoInicial)) > 0
+    val usarCriterio: ((NombreMovimiento, Movimiento)) => Int =
+      (movimiento) => criterio(movimiento._2.accion(estadoInicial))
 
-  def agregarItem(nombre: String, item: Item): Estado = Estado(copy(inventario = inventario updated (nombre, item)))
-
-  def agregarMovimiento(nombre: String, movimiento: Movimiento): Estado(copy(movimientos = movimientos updated (nombre, movimiento)))
-
-  def movimientoMasEfectivoContra(oponente: Guerrero)(criterio: Resultado => Int): Option[(String, Movimiento)] =
-      Option(movimientos.maxBy((_, movimiento) => criterio(movimiento.metodo(this, oponente)))).
-      filter((_, movimiento) => criterio(movimiento.metodo(this, oponente)) > 0)
-
-  def conseguirMovimiento(nombre: String): Movimiento = movimientos.get(nombre)
-
-  def pelearRound(movimiento : String)(oponente : Guerrero): Resultado = {
-      val resultadoPrimerMovimiento:Resultado = conseguirMovimiento(movimiento)(this, oponente)
-      val respuestaOponente:Option[(String, Movimiento)] = resultadoPrimerMovimiento.estadoOponente.movimientoMasEfectivoContra(resultadoPrimerMovimiento.estadoAtacante)(_ - _)
+    Try(this.movimientos.filter(filtrarMovimientosValidos).maxBy[Int](usarCriterio)).toOption
   }
+
+  def pelearRound(movimiento: Movimiento)(oponente: Guerrero): Resultado = {
+    //Este criterio solo busca la mayor ventaja
+    val criterioDeMasEnergia: Resultado => Int = {case Resultado(atacante, oponente) => atacante.energia - oponente.energia}
+    val primerAtaque: Resultado = movimiento.accion(Resultado(this, oponente))
+    primerAtaque.estadoOponente.movimientoMasEfectivoContra(primerAtaque.estadoAtacante)(criterioDeMasEnergia).
+      map(unMovimiento => unMovimiento._2.accion(primerAtaque)).getOrElse[Resultado](primerAtaque)
+  }
+
+  def planDeAtaqueContra(oponente: Guerrero, cantTurnos: Int)(criterio: Resultado => Int): Option[Seq[(NombreMovimiento, Movimiento)]] = {
+    val movimientoMasEfectivo: Option[(NombreMovimiento, Movimiento)] = this.movimientoMasEfectivoContra(oponente)(criterio)
+    if(movimientoMasEfectivo.isEmpty || cantTurnos == 0)
+      None
+    else {
+      val estadoPostRound = pelearRound(movimientoMasEfectivo.get._2)(oponente)
+
+      Option(movimientoMasEfectivo.toSeq).
+        map(_ ++ estadoPostRound.estadoAtacante.
+                    planDeAtaqueContra(estadoPostRound.estadoOponente, cantTurnos-1)(criterio).
+                  getOrElse(Seq[(NombreMovimiento, Movimiento)]() ))
+    }
+  }
+
 }
 
 
-sealed trait Especie
-
+sealed trait Especie {
+  def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie.getClass == this.getClass) Some(arg) else None
+}
 case class Humano() extends Especie
 case class Saiyajin(tieneCola : Boolean = true,
                     esMono : Boolean = false,
                     nivelSS : Short = 0) extends Especie{
   require(nivelSS >= 0, "El nivel de super saiyajin no puede ser negativo")
+  require((!esMono || tieneCola), "Un saiyajin no puede ser mono sin tener cola")
 }
 case class Androide() extends Especie
 case class Namekuseins() extends Especie
@@ -47,52 +71,28 @@ case class Fusionado(original : Guerrero, amigo : Guerrero) extends Especie
 
 
 trait Item
+case object SemillaHermitanio extends Item
+case object FotoLuna extends Item
+case class Arma(municion: Int) extends Item
+case class EsferaDelDragon(cantEstrallas: Short) extends Item
 
-case class Arma(accion : (Guerrero, Guerrero) => Resultado, municiones : Item) extends Item
 
-case class SemillaHermitanio(accion : (Guerrero, Guerrero) => Guerrero) extends Item
-
-case class Movimiento(metodo : (Guerrero, Guerrero) => Resultado,
+trait NombreMovimiento
+case class Movimiento(accion: tipos.Accion,
                       tipoAtaque: Option[TipoAtaque] = None)
 
 
 sealed trait Estado {
-  def usarItem(item : Item): Estado
+  def unapply(arg: Guerrero): Option[Guerrero] = if(arg.estado == this) Some(arg) else None
 }
-object Estado {
-	def apply(guerrero : Guerrero): Estado = {
-    if(guerrero.energia == 0) Muerto(guerrero)
-    else Normal(guerrero)
-  }
-}
+case object Normal extends Estado
+case object Inconsciente extends Estado
+case object Muerto extends Estado
 
-case class Normal(guerrero: Guerrero) extends Estado
-case class Inconsciente(guerrero: Guerrero) extends Estado
-case class Muerto(guerrero: Guerrero) extends Estado
+
+case class Resultado(estadoAtacante: Guerrero, estadoOponente: Guerrero)
 
 
 sealed trait TipoAtaque
-
-case object Energia extends TipoAtaque
-case object Fisico extends TipoAtaque
-
-
-case class Resultado(estadoAtacante: Estado, estadoOponente: Estado)
-  override def usarItem(item: Item): Estado = if(guerrero.tieneItem(item)) item.efecto(guerrero) else this
-}
-case class Inconsciente(guerrero: Guerrero) extends Estado {
-  override def usarItem(item: Item): Estado = (guerrero, item) match {
-    case (guerrero, item @ Item("Semilla del hermitaño", _)) if guerrero.tieneItem(item) =>
-          Normal(guerrero.copy(energia = guerrero.energiaMaxima))
-    case (_, _) => this
-  }
-}
-case class Muerto(guerrero: Guerrero) extends Estado {
-  override def usarItem(item: Item): Estado = this
-}
-
-
-sealed trait TipoAtaque
-
 case object Energia extends TipoAtaque
 case object Fisico extends TipoAtaque
