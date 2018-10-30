@@ -127,7 +127,7 @@ case class Saiyajin(tieneCola : Boolean = true,
 
   def transformarEnMono(guerrero: Guerrero): Guerrero = guerrero.especie match {
     case Saiyajin(true, false, _) if guerrero.tieneItem(FotoDeLuna.nombre) =>
-      guerrero.incrementarMaximo(guerrero.energiaMaxima * 2).restaurar().copy(especie = this.copy(nivelSS = 0))
+      this.dejarDeSerSuperSaiyajin(guerrero).incrementarMaximo(guerrero.energiaMaxima * 2).restaurar()
     case _ => guerrero
   }
 
@@ -139,10 +139,14 @@ case class Saiyajin(tieneCola : Boolean = true,
 }
 case object Androide extends Especie
 case object Namekusein extends Especie
-case class Monstruo(formaDeComer : (Guerrero, Guerrero) => Guerrero,
-                    movimientosDevorados : Seq[Movimiento] = Seq()) extends Especie {
+case class Monstruo(formaDeComer : (Guerrero, Map[String, Movimiento]) => Map[String, Movimiento],
+                    movimientosDevorados : Map[String, Movimiento] = Map[String, Movimiento]()) extends Especie {
   //Repeticion de codigo
   override def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie.getClass == this.getClass) Some(arg) else None
+
+  def devorar(self: Guerrero, oponente: Guerrero): Resultado =
+    Resultado(self.copy(especie = this.copy(movimientosDevorados = formaDeComer(oponente, movimientosDevorados))),
+              oponente.morir())
 }
 case class Fusionado(original : Guerrero, amigo : Guerrero) extends Especie {
   //Repeticion de codigo
