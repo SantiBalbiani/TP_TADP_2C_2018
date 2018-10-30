@@ -43,7 +43,15 @@ case class Guerrero(nombre: String,
 
   def cambiarEstado(nuevoEstado: Estado): Guerrero = hacerAlgo(g => g.copy(estado = nuevoEstado))
 
-  def morir(): Guerrero = copy(estado = Muerto)
+  def morir(): Guerrero = (especie match {
+    case Fusionado(original, _) => original
+    case _ => this
+  }).copy(estado = Muerto)
+
+  def quedarInconsiente(): Guerrero = (especie match {
+    case Fusionado(original, _) => original
+    case _ => this
+  }).copy(estado = Inconsciente)
 
   def actualizarMunicion(nombre:String, nuevaCantidad: Int): Guerrero = {
     val arma: Option[Item] = inventario.get(nombre)
@@ -117,8 +125,6 @@ case class Saiyajin(tieneCola : Boolean = true,
   require(nivelSS >= 0, "El nivel de super saiyajin no puede ser negativo")
   require((!esMono || tieneCola), "Un saiyajin no puede ser mono sin tener cola")
 
-  override def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie.getClass == this.getClass) Some(arg) else None
-
   def cortarCola(guerrero: Guerrero): Guerrero = guerrero.especie match {
     case Saiyajin(true, true, _) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, false, 0))
     case Saiyajin(true, _, nivelSS) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, false, nivelSS))
@@ -141,16 +147,20 @@ case object Androide extends Especie
 case object Namekusein extends Especie
 case class Monstruo(formaDeComer : (Guerrero, Map[String, Movimiento]) => Map[String, Movimiento],
                     movimientosDevorados : Map[String, Movimiento] = Map[String, Movimiento]()) extends Especie {
-  //Repeticion de codigo
-  override def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie.getClass == this.getClass) Some(arg) else None
 
   def devorar(self: Guerrero, oponente: Guerrero): Resultado =
     Resultado(self.copy(especie = this.copy(movimientosDevorados = formaDeComer(oponente, movimientosDevorados))),
               oponente.morir())
 }
 case class Fusionado(original : Guerrero, amigo : Guerrero) extends Especie {
-  //Repeticion de codigo
-  override def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie.getClass == this.getClass) Some(arg) else None
+
+  def obtenerFusion(): Guerrero = Guerrero("Fusion de " + original.nombre + " y " + amigo.nombre,
+    original.energia + amigo.energia,
+    original.energiaMaxima + amigo.energiaMaxima,
+    this,
+    original.movimientos ++ amigo.movimientos,
+    original.inventario ++ amigo.inventario
+    )
 }
 
 
@@ -188,8 +198,14 @@ case class UsarItem(nombre: String, item: Item) extends Movimiento {
   val accion: tipos.Accion = res => if(res.estadoAtacante.tieneItem(item.nombre)) item.accion(Resultado) else res
 }
 case class MovimientoSimple(nombre: String,
-                      accion: tipos.Accion,
-                      tipoAtaque: Option[TipoAtaque] = None) extends Movimiento
+                      accion: tipos.Accion) extends Movimiento
+
+case class Fusion(amigo: Guerrero) extends Movimiento {
+  require(amigo.especie == Humano || amigo.especie.getClass == Saiyajin || amigo.especie == Namekusein, "Solo los humanos, saiyajins y namekuisein pueden fusionarse")
+  val accion: tipos.Accion = res => Resultado(Fusionado(res.estadoAtacante, amigo).obtenerFusion, res.estadoOponente)
+}
+
+case class Ataque(accion: tipos.Accion, tipoAtaque: TipoAtaque)
 
 
 sealed trait Estado {
@@ -209,8 +225,6 @@ object Resultado {
 }
 case class Peleando(estadoAtacante: Guerrero, estadoOponente: Guerrero) extends Resultado
 case class Terminada(ganador: Guerrero) extends Resultado
-
-
 
 
 sealed trait TipoAtaque
