@@ -114,27 +114,35 @@ case class Guerrero(nombre: String,
 
   def pelearRound(movimiento: Movimiento)(oponente: Guerrero): Resultado = {
     //Este criterio solo busca la mayor ventaja (Posible solucion: cambiar criterio para que devuelva punto flotante y hacer la division de la energia)
-    val criterioDeMasEnergia: Resultado => Int = {case Peleando(atacante, oponente) => atacante.energia - oponente.energia}
     val primerAtaque: Resultado = movimiento.ejecutar(Resultado(this, oponente))
     primerAtaque match {
       case Terminada(_) => primerAtaque
       case Peleando(atacante, oponente) =>
-        oponente.movimientoMasEfectivoContra(atacante)(criterioDeMasEnergia).
-        map(unMovimiento => unMovimiento.ejecutar(Resultado(oponente, atacante))).getOrElse[Resultado](primerAtaque)
+        oponente.contraAtacar(atacante).map({
+          case Peleando(oponente, self) => Peleando(self, oponente)
+          case terminada => terminada
+        }).getOrElse[Resultado](primerAtaque)
     }
   }
 
-  def planDeAtaqueContra(oponente: Guerrero, cantTurnos: Int)(criterio: Resultado => Int): Option[Seq[(NombreMovimiento, Movimiento)]] = {
-    val movimientoMasEfectivo: Option[(NombreMovimiento, Movimiento)] = this.movimientoMasEfectivoContra(oponente)(criterio)
-    if(movimientoMasEfectivo.isEmpty || cantTurnos == 0)
-      None
-    else {
-      val estadoPostRound = pelearRound(movimientoMasEfectivo.get._2)(oponente)
+  def contraAtacar(oponente:Guerrero): Option[Resultado] = {
+    val criterioDeMasEnergia: Resultado => tipos.RetornoCriterio = {case Peleando(atacante, oponente) => atacante.energia - oponente.energia}
+    movimientoMasEfectivoContra(oponente)(criterioDeMasEnergia).
+      map(unMovimiento => unMovimiento.ejecutar(Resultado(this, oponente)))
+  }
 
-      Option(movimientoMasEfectivo.toSeq).
-        map(_ ++ estadoPostRound.estadoAtacante.
-                    planDeAtaqueContra(estadoPostRound.estadoOponente, cantTurnos-1)(criterio).
-                  getOrElse(Seq[(NombreMovimiento, Movimiento)]() ))
+  def planDeAtaqueContra(oponente: Guerrero, cantTurnos: Int)(criterio: Resultado => tipos.RetornoCriterio): Option[List[Movimiento]] = {
+    if(cantTurnos == 0) return Some(List[Movimiento]()) //Condicion de corte (y donde me canse de pensar)
+
+    val movimientoMasEfectivo: Option[Movimiento] = this.movimientoMasEfectivoContra(oponente)(criterio)
+    movimientoMasEfectivo match {
+      case None => None
+      case Some(movimiento) =>
+        pelearRound(movimiento)(oponente) match {
+          case Terminada(_) => if(cantTurnos == 1) Some(List[Movimiento](movimiento)) else None
+          case Peleando(atacante, oponente) =>
+            atacante.planDeAtaqueContra(oponente, cantTurnos - 1)(criterio).map(l => l ++ List[Movimiento](movimiento))
+        }
     }
   }
 
