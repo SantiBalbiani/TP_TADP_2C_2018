@@ -1,7 +1,13 @@
+import tipos.Accion
+
 import scala.util.Try
 
 object tipos{
   type Accion = Peleando => Resultado
+}
+
+object PuedeUsarMagia {
+  def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie == Namekusein || arg.especie.getClass == Monstruo || arg.tieneSieteEsferas) Some(arg) else None
 }
 
 case class Guerrero(nombre: String,
@@ -10,7 +16,7 @@ case class Guerrero(nombre: String,
                     especie : Especie,
                     movimientos : Map[String, Movimiento] = Map[String, Movimiento](),
                     inventario : Map[String, Item] = Map[String, Item](),
-                    turnosSiendoFajado : Short = 0,
+                    turnosSiendoFajado : Int = 0,
                     estado : Estado = Normal) {
   
   require(energia > 0, "La energia no puede ser negativa")
@@ -20,9 +26,11 @@ case class Guerrero(nombre: String,
   require(energia == 0 && estado == Normal, "El guerrero no puede estar bien sin energia")
 
   def hacerAlgo(f: Guerrero => Guerrero): Guerrero = this.estado match {
-    case Muerto => this
-    case _ => f(this)
+    case Normal => f(this).copy(turnosSiendoFajado = 0)
+    case _ => this
   }
+
+  def dejarseFajar: Guerrero = this.copy(turnosSiendoFajado = turnosSiendoFajado + 1)
 
   def cargarKi(): Guerrero = hacerAlgo(_.especie match {
     case Androide => this
@@ -36,22 +44,24 @@ case class Guerrero(nombre: String,
     if(g.energia - cantidad <= 0) g.copy(energia = 0).copy(estado = Muerto)
     else g.copy(energia = g.energia - cantidad))
 
+  def incrementarKi(cantidad: Int): Guerrero = hacerAlgo(g => g.copy(energia = (g.energia + cantidad).max(g.energiaMaxima)))
+
   def incrementarMaximo(cantidad: Int): Guerrero = hacerAlgo(g => g.copy(energiaMaxima = g.energiaMaxima + cantidad))
 
   def reducirMaximo(cantidad: Int): Guerrero =
     hacerAlgo(g => g.copy(energia = g.energia.min(g.energiaMaxima)).copy(energiaMaxima = (g.energiaMaxima - cantidad).max(1)))
 
-  def cambiarEstado(nuevoEstado: Estado): Guerrero = hacerAlgo(g => g.copy(estado = nuevoEstado))
-
-  def morir(): Guerrero = (especie match {
+  def morir(): Guerrero = hacerAlgo(g => (g.especie match {
     case Fusionado(original, _) => original
     case _ => this
-  }).copy(estado = Muerto)
+  }).copy(estado = Muerto))
 
-  def quedarInconsiente(): Guerrero = (especie match {
+  def quedarInconsiente(): Guerrero = hacerAlgo(g => (g.especie match {
     case Fusionado(original, _) => original
     case _ => this
-  }).copy(estado = Inconsciente)
+  }).copy(estado = Inconsciente))
+
+  def normalizar(): Guerrero = hacerAlgo(g => g.copy(estado = Normal))
 
   def actualizarMunicion(nombre:String, nuevaCantidad: Int): Guerrero = {
     val arma: Option[Item] = inventario.get(nombre)
@@ -62,15 +72,24 @@ case class Guerrero(nombre: String,
     else this
   }
 
+  def recibirExplosion(danio: Int): Guerrero = hacerAlgo(g =>
+    if(g.especie == Namekusein) g.reducirKi(danio.min(g.energia - 1))
+    else g.reducirKi(danio))
+
+  def listarMovimiento: Map[String, Movimiento] = especie match {
+    case Monstruo(_, movimientosDevorados) => movimientos ++ movimientosDevorados
+    case _ => movimientos
+  }
+
   def usarItem(item: String)(oponente:Guerrero): Resultado = {
     if(estado != Muerto) {
-      val resultadoBase = Resultado(this, oponente)
+      val resultadoBase = Peleando(this, oponente)
       inventario.get(item).map({ i =>
         i match {
           case i @ SemillaDelHermitanio => i.usar(resultadoBase)
           case otro if this.estado == Inconsciente => resultadoBase
           case Arma(_, DeFuego(municion)) if municion == 0 => resultadoBase
-          case arma@Arma(nombre, DeFuego(municion)) => arma.usar(Resultado(actualizarMunicion(nombre, municion - 1), oponente))
+          case arma@Arma(nombre, DeFuego(municion)) => arma.usar(Peleando(actualizarMunicion(nombre, municion - 1), oponente))
           case otro => otro.accion(resultadoBase)
         }
       }).getOrElse(resultadoBase)
@@ -79,6 +98,8 @@ case class Guerrero(nombre: String,
   }
 
   def tieneItem(item: String): Boolean = inventario.exists(_ == item)
+
+  def tieneSieteEsferas: Boolean = inventario.get("Esferas del dragon").map({case (_, EsferasDelDragon(cant)) => cant == 7}).getOrElse(false)
 
   def movimientoMasEfectivoContra(oponente: Guerrero)(criterio: Resultado => Int): Option[Movimiento] = {
     val estadoInicial: Resultado = Resultado(this, oponente)
@@ -166,27 +187,32 @@ case class Fusionado(original : Guerrero, amigo : Guerrero) extends Especie {
 
 trait Item {
   val nombre: String
-  val accion: tipos.Accion
+  val accion: tipos.Accion = { _ }
 
-  def usar(resultado: Resultado): Resultado = {
+  def usar(resultado: Peleando): Resultado = {
     case Terminada => resultado
     case _ => accion(resultado)
   }
 }
-case class ItemBasico(nombre: String, accion: tipos.Accion = {_}) extends Item
+case class ItemBasico(nombre: String, override val accion: tipos.Accion = {_}) extends Item
+
 case object SemillaDelHermitanio extends Item {
   val nombre: String = "Semilla del hermitaño"
-  val accion: tipos.Accion = res => res.copy(estadoAtacante = res.estadoAtacante.restaurar)
+  override val accion: tipos.Accion = res => res.copy(estadoAtacante = res.estadoAtacante.restaurar)
 }
 case class Arma(nombre: String, tipoArma: TipoArma) extends Item {
-  val accion: tipos.Accion = tipoArma.procesar(_)
+  override val accion: tipos.Accion = tipoArma.procesar(_)
 }
 case object FotoDeLuna extends Item {
   val nombre: String = "Foto de la luna"
-  val accion: tipos.Accion = _
+}
+
+case class EsferasDelDragon(cantidad: Int) extends Item {
+  val nombre: String = "Esferas del dragon"
 }
 
 trait Movimiento {
+  val nombre: String
   val accion: tipos.Accion
 
   def ejecutar(resultado: Resultado): Resultado = {
@@ -194,18 +220,57 @@ trait Movimiento {
     case _ => accion(resultado)
   }
 }
-case class UsarItem(nombre: String, item: Item) extends Movimiento {
-  val accion: tipos.Accion = res => if(res.estadoAtacante.tieneItem(item.nombre)) item.accion(Resultado) else res
+
+case class UsarItem(item: Item) extends Movimiento {
+  val nombre: String = "Usar " + item.nombre
+  val accion: tipos.Accion = res => res.estadoAtacante.usarItem(item.nombre)(res.estadoOponente)
 }
+
 case class MovimientoSimple(nombre: String,
                       accion: tipos.Accion) extends Movimiento
 
 case class Fusion(amigo: Guerrero) extends Movimiento {
+  val nombre:String = "Fusion con " + amigo.nombre
   require(amigo.especie == Humano || amigo.especie.getClass == Saiyajin || amigo.especie == Namekusein, "Solo los humanos, saiyajins y namekuisein pueden fusionarse")
   val accion: tipos.Accion = res => Resultado(Fusionado(res.estadoAtacante, amigo).obtenerFusion, res.estadoOponente)
 }
 
-case class Ataque(accion: tipos.Accion, tipoAtaque: TipoAtaque)
+case class Magia(nombre: String, hechizo: tipos.Accion) extends Movimiento {
+  val accion: tipos.Accion = res => res.estadoAtacante match {
+    case PuedeUsarMagia(_) => hechizo(res)
+    case _ => res
+  }
+}
+
+trait AtaqueDeEnergia extends Movimiento
+{
+  val danio: Peleando => Int
+  val efecto: Guerrero => Guerrero = { _ }
+  override val accion: Accion = { _ }
+
+  override def ejecutar(resultado: Resultado): Resultado = {
+    case Terminada => resultado
+    case Peleando(_, oponente) if oponente.especie == Androide => oponente.incrementarKi(danio(resultado))
+    case Peleando(a, o) => Resultado(efecto(a), o.reducirKi(danio(resultado)))
+  }
+}
+
+case class Onda(nombre:String, costo: Int) extends AtaqueDeEnergia {
+  val danio: Peleando => Int = _.estadoOponente.especie match {
+    case Monstruo(_, _) => costo / 2
+    case _ => costo * 2
+  }
+
+  override val efecto: Guerrero => Guerrero = {_.reducirKi(costo)}
+}
+
+case object Genkidama extends AtaqueDeEnergia {
+  val nombre: String = "Genkidama"
+  override val danio: Peleando => Int = res => if(res.estadoAtacante.turnosSiendoFajado > 0) math.pow(10, res.estadoAtacante.turnosSiendoFajado).toInt else 0
+  override val efecto: Guerrero => Guerrero = {_.hacerAlgo({_})}
+}
+
+case class AtaqueFisico(nombre:String, accion: tipos.Accion) extends Movimiento
 
 
 sealed trait Estado {
@@ -223,13 +288,12 @@ object Resultado {
     else if(atacante.estado == Muerto) Terminada(oponente)
     else Peleando(atacante, oponente)
 }
-case class Peleando(estadoAtacante: Guerrero, estadoOponente: Guerrero) extends Resultado
+case class Peleando(estadoAtacante: Guerrero, estadoOponente: Guerrero) extends Resultado {
+  def afectarMasDebil(f: Guerrero => Guerrero): Resultado =
+    if(estadoAtacante.energia > estadoOponente.energia) Resultado(estadoAtacante, f(estadoOponente))
+    else Resultado(f(estadoAtacante), estadoOponente)
+}
 case class Terminada(ganador: Guerrero) extends Resultado
-
-
-sealed trait TipoAtaque
-case object Energia extends TipoAtaque
-case object Fisico extends TipoAtaque
 
 
 sealed trait TipoArma {
@@ -256,7 +320,7 @@ case class DeFuego(municion: Int) extends TipoArma {
 }
 case object Roma extends TipoArma {
   override def procesar(res: Peleando): Resultado = {
-    if(res.estadoOponente.especie != Androide && res.estadoOponente.energia < 300) Resultado(res.estadoAtacante, res.estadoOponente.cambiarEstado(Inconsciente))
+    if(res.estadoOponente.especie != Androide && res.estadoOponente.energia < 300) Resultado(res.estadoAtacante, res.estadoOponente.quedarInconsiente)
     else res
   }
 }

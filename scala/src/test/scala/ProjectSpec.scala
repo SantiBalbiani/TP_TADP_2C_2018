@@ -3,11 +3,11 @@ import org.scalatest.{FreeSpec, Matchers}
 class ProjectSpec extends FreeSpec with Matchers {
 
   "Dragon Ball" - {
-    val dejarseFajar: Movimiento = MovimientoSimple("Dejarse fajar", {_})
+    val dejarseFajar: Movimiento = MovimientoSimple("Dejarse fajar", res => Resultado(res.estadoAtacante.dejarseFajar, res.estadoOponente))
 
     val cargarKi: Movimiento = MovimientoSimple("Cargar ki", { res => res.copy(estadoAtacante = res.estadoAtacante.cargarKi)}))
 
-    val usarSemillaHermitanio: Movimiento = UsarItem("Usar semilla del hermitaño", SemillaDelHermitanio)
+    val usarSemillaHermitanio: Movimiento = UsarItem(SemillaDelHermitanio)
 
     val comerseAlOponente: Movimiento = MovimientoSimple("Comerse al oponente", res => res.estadoAtacante.especie match {
       case monstruo @Monstruo(_, _) if res.estadoAtacante.energia > res.estadoOponente.energia =>
@@ -22,6 +22,18 @@ class ProjectSpec extends FreeSpec with Matchers {
 
     val transformarseEnSS: Movimiento = MovimientoSimple("Transformase en super saiyajin", res => res.estadoAtacante.especie match {
       case saiyajin @Saiyajin(_, _, _) => Resultado(saiyajin.convertiseEnSuperSaiyajin(res.estadoAtacante), res.estadoOponente)
+      case _ => res
+    })
+
+    val MGN: Movimiento = AtaqueFisico("Muchos golpes ninja",  res =>
+      (res.estadoAtacante.especie, res.estadoOponente.especie) match {
+        case (Humano, Androide) => Resultado(res.estadoAtacante.reducirKi(10), res.estadoOponente)
+        case (_,_) => res.afectarMasDebil(_.reducirKi(20))
+      })
+
+    val explotar: Movimiento = AtaqueFisico("Explotar", res => res.estadoAtacante.especie match {
+      case Monstruo(_,_) => Resultado(res.estadoAtacante.morir(), res.estadoOponente.recibirExplosion(res.estadoAtacante.energia * 2))
+      case Androide => Resultado(res.estadoAtacante.morir(), res.estadoOponente.recibirExplosion(res.estadoAtacante.energia * 3))
       case _ => res
     })
 
