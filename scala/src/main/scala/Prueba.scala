@@ -1,9 +1,10 @@
-import tipos.Accion
+import tipos.{Accion, RetornoCriterio}
 
 import scala.util.Try
 
 object tipos{
   type Accion = Peleando => Resultado
+  type RetornoCriterio = Int
 }
 
 object PuedeUsarMagia {
@@ -76,7 +77,7 @@ case class Guerrero(nombre: String,
     if(g.especie == Namekusein) g.reducirKi(danio.min(g.energia - 1))
     else g.reducirKi(danio))
 
-  def listarMovimiento: Map[String, Movimiento] = especie match {
+  def listarMovimientos: Map[String, Movimiento] = especie match {
     case Monstruo(_, movimientosDevorados) => movimientos ++ movimientosDevorados
     case _ => movimientos
   }
@@ -87,7 +88,7 @@ case class Guerrero(nombre: String,
       inventario.get(item).map({ i =>
         i match {
           case i @ SemillaDelHermitanio => i.usar(resultadoBase)
-          case otro if this.estado == Inconsciente => resultadoBase
+          case _ if this.estado == Inconsciente => resultadoBase
           case Arma(_, DeFuego(municion)) if municion == 0 => resultadoBase
           case arma@Arma(nombre, DeFuego(municion)) => arma.usar(Peleando(actualizarMunicion(nombre, municion - 1), oponente))
           case otro => otro.accion(resultadoBase)
@@ -101,22 +102,26 @@ case class Guerrero(nombre: String,
 
   def tieneSieteEsferas: Boolean = inventario.get("Esferas del dragon").map({case (_, EsferasDelDragon(cant)) => cant == 7}).getOrElse(false)
 
-  def movimientoMasEfectivoContra(oponente: Guerrero)(criterio: Resultado => Int): Option[Movimiento] = {
+  def movimientoMasEfectivoContra(oponente: Guerrero)(criterio: Resultado => tipos.RetornoCriterio): Option[Movimiento] = {
     val estadoInicial: Resultado = Resultado(this, oponente)
     val filtrarMovimientosValidos: ((String, Movimiento)) => Boolean =
-      (movimiento) => criterio(movimiento._2.accion(estadoInicial)) > 0
-    val usarCriterio: ((String, Movimiento)) => Int =
-      (movimiento) => criterio(movimiento._2.accion(estadoInicial))
+      movimiento => criterio(movimiento._2.ejecutar(estadoInicial)) > 0
+    val usarCriterio: ((String, Movimiento)) => tipos.RetornoCriterio =
+      movimiento => criterio(movimiento._2.ejecutar(estadoInicial))
 
-    Try(this.movimientos.filter(filtrarMovimientosValidos).maxBy[Int](usarCriterio)).toOption
+    Try(this.listarMovimientos.filter(filtrarMovimientosValidos).maxBy[tipos.RetornoCriterio](usarCriterio)._2).toOption
   }
 
   def pelearRound(movimiento: Movimiento)(oponente: Guerrero): Resultado = {
     //Este criterio solo busca la mayor ventaja (Posible solucion: cambiar criterio para que devuelva punto flotante y hacer la division de la energia)
-    val criterioDeMasEnergia: Resultado => Int = {case Resultado(atacante, oponente) => atacante.energia - oponente.energia}
-    val primerAtaque: Resultado = movimiento.accion(Resultado(this, oponente))
-    primerAtaque.estadoOponente.movimientoMasEfectivoContra(primerAtaque.estadoAtacante)(criterioDeMasEnergia).
-      map(unMovimiento => unMovimiento.accion(primerAtaque)).getOrElse[Resultado](primerAtaque)
+    val criterioDeMasEnergia: Resultado => Int = {case Peleando(atacante, oponente) => atacante.energia - oponente.energia}
+    val primerAtaque: Resultado = movimiento.ejecutar(Resultado(this, oponente))
+    primerAtaque match {
+      case Terminada(_) => primerAtaque
+      case Peleando(atacante, oponente) =>
+        oponente.movimientoMasEfectivoContra(atacante)(criterioDeMasEnergia).
+        map(unMovimiento => unMovimiento.ejecutar(Resultado(oponente, atacante))).getOrElse[Resultado](primerAtaque)
+    }
   }
 
   def planDeAtaqueContra(oponente: Guerrero, cantTurnos: Int)(criterio: Resultado => Int): Option[Seq[(NombreMovimiento, Movimiento)]] = {
