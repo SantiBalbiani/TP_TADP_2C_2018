@@ -3,9 +3,9 @@ import org.scalatest.{FreeSpec, Matchers}
 class ProjectSpec extends FreeSpec with Matchers {
 
   "Dragon Ball" - {
-    val dejarseFajar: Movimiento = MovimientoSimple("Dejarse fajar", res => Resultado(res.estadoAtacante.dejarseFajar, res.estadoOponente))
+    val dejarseFajar: Movimiento = MovimientoSimple("Dejarse fajar", res => EstadoResultado(res.estadoAtacante.dejarseFajar, res.estadoOponente))
 
-    val cargarKi: Movimiento = MovimientoSimple("Cargar ki", { res => res.copy(estadoAtacante = res.estadoAtacante.cargarKi)}))
+    val cargarKi: Movimiento = MovimientoSimple("Cargar ki", { res => res.copy(estadoAtacante = res.estadoAtacante.cargarKi)})
 
     val usarSemillaHermitanio: Movimiento = UsarItem(SemillaDelHermitanio)
 
@@ -16,24 +16,24 @@ class ProjectSpec extends FreeSpec with Matchers {
     })
 
     val convertirseEnMono: Movimiento = MovimientoSimple("Convertirse en mono",  res => res.estadoAtacante.especie match {
-      case saiyajin @ Saiyajin(true, false, _) => Resultado(saiyajin.transformarEnMono(res.estadoAtacante), res.estadoOponente)
+      case saiyajin @ Saiyajin(true, false, _) => EstadoResultado(saiyajin.transformarEnMono(res.estadoAtacante), res.estadoOponente)
       case _ => res
     })
 
     val transformarseEnSS: Movimiento = MovimientoSimple("Transformase en super saiyajin", res => res.estadoAtacante.especie match {
-      case saiyajin @Saiyajin(_, _, _) => Resultado(saiyajin.convertiseEnSuperSaiyajin(res.estadoAtacante), res.estadoOponente)
+      case saiyajin @Saiyajin(_, _, _) => EstadoResultado(saiyajin.convertiseEnSuperSaiyajin(res.estadoAtacante), res.estadoOponente)
       case _ => res
     })
 
     val MGN: Movimiento = AtaqueFisico("Muchos golpes ninja",  res =>
       (res.estadoAtacante.especie, res.estadoOponente.especie) match {
-        case (Humano, Androide) => Resultado(res.estadoAtacante.reducirKi(10), res.estadoOponente)
+        case (Humano, Androide) => EstadoResultado(res.estadoAtacante.reducirKi(10), res.estadoOponente)
         case (_,_) => res.afectarMasDebil(_.reducirKi(20))
       })
 
     val explotar: Movimiento = AtaqueFisico("Explotar", res => res.estadoAtacante.especie match {
-      case Monstruo(_,_) => Resultado(res.estadoAtacante.morir(), res.estadoOponente.recibirExplosion(res.estadoAtacante.energia * 2))
-      case Androide => Resultado(res.estadoAtacante.morir(), res.estadoOponente.recibirExplosion(res.estadoAtacante.energia * 3))
+      case Monstruo(_,_) => EstadoResultado(res.estadoAtacante.morir(), res.estadoOponente.recibirExplosion(res.estadoAtacante.energia * 2))
+      case Androide => EstadoResultado(res.estadoAtacante.morir(), res.estadoOponente.recibirExplosion(res.estadoAtacante.energia * 3))
       case _ => res
     })
 
