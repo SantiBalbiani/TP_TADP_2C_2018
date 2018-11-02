@@ -8,7 +8,7 @@ object tipos{
 }
 
 object PuedeUsarMagia {
-  def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie == Namekusein || arg.especie.isInstanceOf[Monstruo] || arg.tieneSieteEsferas) Some(arg) else None
+  def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie == Namekusein || arg.especie.isInstanceOf[Monstruo]) Some(arg) else None
 }
 
 object PuedeFusionarse {
@@ -287,6 +287,8 @@ case class Fusion(amigo: Guerrero) extends Movimiento {
 case class Magia(nombre: String, hechizo: tipos.Accion) extends Movimiento {
   val accion: tipos.Accion = res => res.estadoAtacante match {
     case PuedeUsarMagia(_) => hechizo(res)
+    case atacante if atacante.tieneSieteEsferas => hechizo(EstadoResultado(atacante.copy(inventario = atacante.inventario - "Esferas del dragon"
+), res.estadoOponente))
     case _ => res
   }
 }
