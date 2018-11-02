@@ -11,6 +11,10 @@ object PuedeUsarMagia {
   def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie == Namekusein || arg.especie.isInstanceOf[Monstruo] || arg.tieneSieteEsferas) Some(arg) else None
 }
 
+object PuedeFusionarse {
+  def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie == Humano || arg.especie.isInstanceOf[Saiyajin] || arg.especie == Namekusein) Some(arg) else None
+}
+
 case class Guerrero(nombre: String,
                     energia : Int,
                     energiaMaxima : Int,
@@ -273,8 +277,11 @@ case class MovimientoSimple(nombre: String,
 
 case class Fusion(amigo: Guerrero) extends Movimiento {
   val nombre:String = "Fusion con " + amigo.nombre
-  require(amigo.especie == Humano || amigo.especie.isInstanceOf[Saiyajin] || amigo.especie == Namekusein, "Solo los humanos, saiyajins y namekuisein pueden fusionarse")
-  val accion: tipos.Accion = res => EstadoResultado(Fusionado(res.estadoAtacante, amigo).obtenerFusion, res.estadoOponente)
+  //require(amigo.especie == Humano || amigo.especie.isInstanceOf[Saiyajin] || amigo.especie == Namekusein, "Solo los humanos, saiyajins y namekuisein pueden fusionarse")
+  val accion: tipos.Accion = res => (res.estadoAtacante, amigo) match {
+    case (PuedeFusionarse(atacante), PuedeFusionarse(_)) => EstadoResultado(Fusionado(atacante, amigo).obtenerFusion, res.estadoOponente)
+    case (_, _) => res
+  }
 }
 
 case class Magia(nombre: String, hechizo: tipos.Accion) extends Movimiento {

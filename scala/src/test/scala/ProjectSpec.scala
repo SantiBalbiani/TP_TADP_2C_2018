@@ -367,6 +367,40 @@ class ProjectSpec extends FreeSpec with Matchers {
           goku.quedarInconsciente shouldBe goku.copy(especie = Saiyajin(true, SaiyajinNormal), energiaMaxima = 20, energia = 20, estado = Inconsciente)
         }
       }
+      "Fusion" - {
+        val movUsarSemilla = Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio))
+        val tenerSemilla = Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio))
+        val yajirobe: Guerrero = Guerrero("Yajirobe", 1, 100, Humano, movUsarSemilla, tenerSemilla)
+        val movTransEnSS = Map[String, Movimiento]((transformarseEnSS.nombre, transformarseEnSS))
+        val goku: Guerrero = Guerrero("Goku", 100, 100, Saiyajin(estado = SuperSaiyajin(20)), movTransEnSS)
+        val A17: Guerrero = Guerrero("Androide 17", 100, 100, Androide, Map[String, Movimiento]((dejarseFajar.nombre, dejarseFajar)))
+
+        "goku y yajirobe se fusionan" in {
+          val gokuConFusion = goku.copy(movimientos = goku.movimientos + ((Fusion(yajirobe).nombre, Fusion(yajirobe))))
+          Fusion(yajirobe).ejecutar(EstadoResultado(gokuConFusion, humanoGenerico)).estadoAtacante shouldBe
+            Guerrero("Fusion de Goku y Yajirobe", 101, 200, Fusionado(gokuConFusion, yajirobe), movUsarSemilla ++ gokuConFusion.movimientos, yajirobe.inventario ++ goku.inventario)
+        }
+
+        "goku y A17 no se fusionan" in {
+          val gokuConFusion = goku.copy(movimientos = goku.movimientos + ((Fusion(yajirobe).nombre, Fusion(yajirobe))))
+          Fusion(A17).ejecutar(EstadoResultado(gokuConFusion, humanoGenerico)).estadoAtacante shouldBe gokuConFusion
+        }
+
+        "Fusion de goku y yajirobe se deshace al quedar inconsciente" in {
+          val gokuConFusion = goku.copy(movimientos = goku.movimientos + ((Fusion(yajirobe).nombre, Fusion(yajirobe))))
+          val fusion = Fusion(yajirobe).ejecutar(EstadoResultado(gokuConFusion, humanoGenerico)).estadoAtacante
+
+          fusion.quedarInconsciente shouldBe gokuConFusion.copy(estado = Inconsciente)
+        }
+
+
+        "Fusion de goku y yajirobe se deshace al quedar morir" in {
+          val gokuConFusion = goku.copy(movimientos = goku.movimientos + ((Fusion(yajirobe).nombre, Fusion(yajirobe))))
+          val fusion = Fusion(yajirobe).ejecutar(EstadoResultado(gokuConFusion, humanoGenerico)).estadoAtacante
+
+          fusion.morir shouldBe gokuConFusion.copy(estado = Muerto, energia = 0)
+        }
+      }
     }
   }
 }
