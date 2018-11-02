@@ -17,12 +17,12 @@ case class Guerrero(nombre: String,
                     especie : Especie,
                     movimientos : Map[String, Movimiento] = Map[String, Movimiento](),
                     inventario : Map[String, Item] = Map[String, Item](),
-                    turnosSiendoFajado : Int = 0,
-                    estado : Estado = Normal) {
+                    estado : Estado = Normal,
+                    turnosSiendoFajado : Int = 0) {
   
-  require(energia > 0, "La energia no puede ser negativa")
+  require(energia >= 0, "La energia no puede ser negativa")
   require(energiaMaxima >= energia, "La energia no puede superar el maximo")
-  require(energiaMaxima > 0, "La energia maxima no puede ser negativa")
+  require(energiaMaxima > 0, "La energia maxima no puede ser negativa ni cero")
   require(turnosSiendoFajado >= 0, "turnosSiendoFajado debe ser positivo o 0")
   require((estado == Muerto && energia == 0) || (estado != Muerto && energia > 0), "El guerrero no puede estar bien sin energia")
 
@@ -31,18 +31,28 @@ case class Guerrero(nombre: String,
     case _ => this
   }
 
-  def dejarseFajar: Guerrero = this.copy(turnosSiendoFajado = turnosSiendoFajado + 1)
+  def dejarseFajar: Guerrero = estado match {
+    case Normal => this.copy(turnosSiendoFajado = turnosSiendoFajado + 1)
+    case _ => this
+  }
 
   def cargarKi: Guerrero = hacerAlgo(_.especie match {
     case Androide => this
-    case Saiyajin(_, _, nivelSS) if nivelSS > 0 => this.copy(energia = (energia + 150 * nivelSS) max energiaMaxima)
-    case _ => this.copy(energia = (energia + 100) max energiaMaxima)
+    case Saiyajin(_, _, nivelSS) if nivelSS > 0 => this.copy(energia = (energia + 150 * nivelSS) min energiaMaxima)
+    case _ => this.copy(energia = (energia + 100) min energiaMaxima)
   })
 
-  def restaurar: Guerrero = hacerAlgo(_.copy(energia = energiaMaxima))
+  val restauracion: Guerrero => Guerrero = _.copy(energia = energiaMaxima, estado = Normal)
+
+  def restaurar: Guerrero = hacerAlgo(restauracion)
+
+  def restaurarPorSemilla: Guerrero = estado match {
+    case Muerto => this
+    case _ => restauracion(this)
+  }
 
   def reducirKi(cantidad: Int): Guerrero = hacerAlgo(g =>
-    if(g.energia - cantidad <= 0) g.copy(energia = 0).copy(estado = Muerto)
+    if(g.energia - cantidad <= 0) g.copy(energia = 0, estado = Muerto)
     else g.copy(energia = g.energia - cantidad))
 
   def incrementarKi(cantidad: Int): Guerrero = hacerAlgo(g => g.copy(energia = (g.energia + cantidad).max(g.energiaMaxima)))
@@ -52,18 +62,18 @@ case class Guerrero(nombre: String,
   def reducirMaximo(cantidad: Int): Guerrero =
     hacerAlgo(g => g.copy(energia = g.energia.min(g.energiaMaxima)).copy(energiaMaxima = (g.energiaMaxima - cantidad).max(1)))
 
-  def morir(): Guerrero = hacerAlgo(g => (g.especie match {
+  def morir: Guerrero = hacerAlgo(g => (g.especie match {
     case Fusionado(original, _) => original
     case _ => this
-  }).copy(estado = Muerto))
+  }).reducirKi(g.energia))
 
-  def quedarInconsiente(): Guerrero = hacerAlgo(g => (g.especie match {
+  def quedarInconsiente: Guerrero = hacerAlgo(g => (g.especie match {
     case Fusionado(original, _) => original
     case saiyajin @ Saiyajin(_, _, _) => saiyajin.dejarDeSerSuperSaiyajin(g)
     case _ => this
   }).copy(estado = Inconsciente))
 
-  def normalizar(): Guerrero = hacerAlgo(g => g.copy(estado = Normal))
+  def normalizar: Guerrero = hacerAlgo(g => g.copy(estado = Normal))
 
   def actualizarMunicion(nombre:String, nuevaCantidad: Int): Guerrero = {
     val arma: Option[Item] = inventario.get(nombre)
@@ -193,7 +203,7 @@ case class Monstruo(formaDeComer : (Guerrero, Map[String, Movimiento]) => Map[St
 
   def devorar(self: Guerrero, oponente: Guerrero): EstadoResultado =
     EstadoResultado(self.copy(especie = this.copy(movimientosDevorados = formaDeComer(oponente, movimientosDevorados))),
-              oponente.morir())
+              oponente.morir)
 }
 case class Fusionado(original : Guerrero, amigo : Guerrero) extends Especie {
 
@@ -217,7 +227,7 @@ case class ItemBasico(nombre: String, override val accion: tipos.Accion = res =>
 
 case object SemillaDelHermitanio extends Item {
   val nombre: String = "Semilla del hermitaño"
-  override val accion: tipos.Accion = res => res.copy(estadoAtacante = res.estadoAtacante.restaurar)
+  override val accion: tipos.Accion = res => res.copy(estadoAtacante = res.estadoAtacante.restaurarPorSemilla)
 }
 case class Arma(nombre: String, tipoArma: TipoArma) extends Item {
   override val accion: tipos.Accion = tipoArma.procesar(_)
