@@ -38,7 +38,7 @@ case class Guerrero(nombre: String,
 
   def cargarKi: Guerrero = hacerAlgo(_.especie match {
     case Androide => this
-    case Saiyajin(_, _, nivelSS) if nivelSS > 0 => this.copy(energia = (energia + 150 * nivelSS) min energiaMaxima)
+    case Saiyajin(_, SuperSaiyajin(_, nivel)) => this.copy(energia = (energia + 150 * nivel) min energiaMaxima)
     case _ => this.copy(energia = (energia + 100) min energiaMaxima)
   })
 
@@ -60,7 +60,11 @@ case class Guerrero(nombre: String,
   def incrementarMaximo(cantidad: Int): Guerrero = hacerAlgo(g => g.copy(energiaMaxima = g.energiaMaxima + cantidad))
 
   def reducirMaximo(cantidad: Int): Guerrero =
-    hacerAlgo(g => g.copy(energia = g.energia.min(g.energiaMaxima)).copy(energiaMaxima = (g.energiaMaxima - cantidad).max(1)))
+    hacerAlgo(g =>
+      if(g.energiaMaxima - cantidad > 0)
+        g.copy(energia = g.energia.min(g.energiaMaxima - cantidad), energiaMaxima = (g.energiaMaxima - cantidad))
+      else
+        g.copy(energia = 1, energiaMaxima = 1))
 
   def morir: Guerrero = hacerAlgo(g => (g.especie match {
     case Fusionado(original, _) => original
@@ -69,7 +73,7 @@ case class Guerrero(nombre: String,
 
   def quedarInconsciente: Guerrero = hacerAlgo(g => (g.especie match {
     case Fusionado(original, _) => original
-    case saiyajin @ Saiyajin(_, _, _) => saiyajin.dejarDeSerSuperSaiyajin(g)
+    case saiyajin @ Saiyajin(_, _) => saiyajin.dejarDeSerSuperSaiyajin(g)
     case _ => this
   }).copy(estado = Inconsciente))
 
@@ -173,28 +177,36 @@ sealed trait Especie {
 }
 case object Humano extends Especie
 case class Saiyajin(tieneCola : Boolean = true,
-                    esMono : Boolean = false,
-                    nivelSS : Int = 0) extends Especie{
-  require(nivelSS >= 0, "El nivel de super saiyajin no puede ser negativo")
-  require(!esMono || tieneCola, "Un saiyajin no puede ser mono sin tener cola")
+                    estado: EstadoSaiyajin = SaiyajinNormal) extends Especie{
+
+  require(estado != Mono || tieneCola, "Un saiyajin no puede ser mono sin tener cola")
 
   def cortarCola(guerrero: Guerrero): Guerrero = guerrero.especie match {
-    case Saiyajin(true, true, _) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, false, 0)).quedarInconsciente
-    case Saiyajin(true, _, nivelSS) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, false, nivelSS))
+    case Saiyajin(true, Mono) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, SaiyajinNormal)).quedarInconsciente
+    case Saiyajin(true, otro) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, otro))
     case _ => guerrero
   }
 
   def transformarEnMono(guerrero: Guerrero): Guerrero = guerrero.especie match {
-    case Saiyajin(true, false, _) if guerrero.tieneItem(FotoDeLuna.nombre) =>
-      this.dejarDeSerSuperSaiyajin(guerrero).incrementarMaximo(guerrero.energiaMaxima * 2).restaurar
+    case Saiyajin(true, estado) if guerrero.tieneItem(FotoDeLuna.nombre) && estado != Mono =>{
+      val sinSS = this.dejarDeSerSuperSaiyajin(guerrero)
+      sinSS.incrementarMaximo(sinSS.energiaMaxima * 2).restaurar.hacerAlgo(_.copy(especie = Saiyajin(true, Mono)))
+    }
     case _ => guerrero
   }
 
-  def convertiseEnSuperSaiyajin(guerrero: Guerrero): Guerrero =
-    if(guerrero.energia >= guerrero.energiaMaxima / 2) guerrero.copy(especie = this.copy(nivelSS = nivelSS + 1)).incrementarMaximo(5 * nivelSS)
-    else guerrero
+  def convertiseEnSuperSaiyajin(self: Guerrero): Guerrero = self.especie match {
+    case Saiyajin(tieneCola, SaiyajinNormal) if self.energia > self.energiaMaxima / 2 =>
+      self.hacerAlgo(g=> g.copy(especie = Saiyajin(tieneCola, SuperSaiyajin(g.energiaMaxima)))).incrementarMaximo(self.energiaMaxima * 4)
+    case Saiyajin(tieneCola, SuperSaiyajin(energiaOriginal, nivel)) if self.energia > self.energiaMaxima / 2 =>
+      self.hacerAlgo(g=> g.copy(especie = Saiyajin(tieneCola, SuperSaiyajin(energiaOriginal, nivel + 1)))).incrementarMaximo(energiaOriginal * 5)
+    case _ => self
+  }
 
-  def dejarDeSerSuperSaiyajin(guerrero: Guerrero): Guerrero = guerrero.copy(especie = this.copy(nivelSS = 0)).reducirMaximo(nivelSS * 5)
+  def dejarDeSerSuperSaiyajin(guerrero: Guerrero): Guerrero = guerrero.especie match {
+    case Saiyajin(tieneCola, SuperSaiyajin(energiaOriginal, _)) => guerrero.reducirMaximo(guerrero.energiaMaxima - energiaOriginal).hacerAlgo(_.copy(especie = Saiyajin(tieneCola, SaiyajinNormal)))
+    case _ => guerrero
+  }
 }
 case object Androide extends Especie
 case object Namekusein extends Especie
@@ -336,7 +348,7 @@ sealed trait TipoArma {
 case object Filosa extends TipoArma {
   override def procesar(res: EstadoResultado): EstadoResultado = {
     res.estadoOponente.especie match {
-      case saiyajin @ Saiyajin(true, _, _) => EstadoResultado(res.estadoAtacante, saiyajin.cortarCola(res.estadoOponente))
+      case saiyajin @ Saiyajin(true, _) => EstadoResultado(res.estadoAtacante, saiyajin.cortarCola(res.estadoOponente))
       case _ => EstadoResultado(res.estadoAtacante, res.estadoOponente.reducirKi(res.estadoAtacante.energia * 100))
     }
   }
@@ -359,4 +371,11 @@ case object Roma extends TipoArma {
     else
       res
   }
+}
+
+sealed trait EstadoSaiyajin
+case object SaiyajinNormal extends EstadoSaiyajin
+case object Mono extends EstadoSaiyajin
+case class SuperSaiyajin(energiaOriginal: Int, nivel: Int = 1) extends EstadoSaiyajin {
+  require(nivel > 0, "El nivel de super saiyajin debe ser mayor a cero")
 }

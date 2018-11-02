@@ -15,12 +15,12 @@ class ProjectSpec extends FreeSpec with Matchers {
     })
 
     val convertirseEnMono: Movimiento = MovimientoSimple("Convertirse en mono",  res => res.estadoAtacante.especie match {
-      case saiyajin @ Saiyajin(true, false, _) => EstadoResultado(saiyajin.transformarEnMono(res.estadoAtacante), res.estadoOponente)
+      case saiyajin @ Saiyajin(_, _) => EstadoResultado(saiyajin.transformarEnMono(res.estadoAtacante), res.estadoOponente)
       case _ => res
     })
 
     val transformarseEnSS: Movimiento = MovimientoSimple("Transformase en super saiyajin", res => res.estadoAtacante.especie match {
-      case saiyajin @Saiyajin(_, _, _) => EstadoResultado(saiyajin.convertiseEnSuperSaiyajin(res.estadoAtacante), res.estadoOponente)
+      case saiyajin @Saiyajin(_, _) => EstadoResultado(saiyajin.convertiseEnSuperSaiyajin(res.estadoAtacante), res.estadoOponente)
       case _ => res
     })
 
@@ -66,7 +66,7 @@ class ProjectSpec extends FreeSpec with Matchers {
         }
 
         "goku con nivel ss 2 carga su ki" in {
-          val goku: Guerrero = Guerrero("Goku", 100, 400, Saiyajin(false, false, 2), movCargarKi)
+          val goku: Guerrero = Guerrero("Goku", 100, 400, Saiyajin(false, SuperSaiyajin(40, 2)), movCargarKi)
 
           cargarKi.ejecutar(EstadoResultado(goku, humanoGenerico)).estadoAtacante shouldBe goku.copy(energia = 400)
         }
@@ -180,7 +180,7 @@ class ProjectSpec extends FreeSpec with Matchers {
           }
 
           "yajirobe ataca a vegeta (saiyajin hecho mono)" in {
-            val vegeta: Guerrero = Guerrero("Vegeta (Mono)", 510, 510, Saiyajin(true, true))
+            val vegeta: Guerrero = Guerrero("Vegeta (Mono)", 510, 510, Saiyajin(true, Mono))
             usarEspada.ejecutar(EstadoResultado(yajirobe, vegeta)).estadoOponente shouldBe vegeta.copy(energia = 1, especie = Saiyajin(false), estado = Inconsciente)
           }
         }
@@ -305,9 +305,68 @@ class ProjectSpec extends FreeSpec with Matchers {
       }
 
       "transformarse en mono" - {
-        
+        val movTransformaseEnMono = Map[String, Movimiento]((convertirseEnMono.nombre, convertirseEnMono))
+        val tieneFotoLuna = Map[String, Item]((FotoDeLuna.nombre, FotoDeLuna))
+
+        "gohan se transforma en mono" in {
+          val gohan: Guerrero = Guerrero("Gohan", 10, 100, Saiyajin(), movTransformaseEnMono, tieneFotoLuna)
+          convertirseEnMono.ejecutar(EstadoResultado(gohan, humanoGenerico)).estadoAtacante shouldBe gohan.copy(energiaMaxima = 300, energia = 300, especie = Saiyajin(true, Mono))
+        }
+
+        "SS goku (con cola) se transforma en mono" in {
+          val goku: Guerrero = Guerrero("Goku", 10, 100, Saiyajin(true, SuperSaiyajin(20)), movTransformaseEnMono, tieneFotoLuna)
+          convertirseEnMono.ejecutar(EstadoResultado(goku, humanoGenerico)).estadoAtacante shouldBe goku.copy(energia = 60, energiaMaxima = 60, especie = Saiyajin(true, Mono))
+        }
+
+        "goku (sin cola) no se transforma" in {
+          val goku: Guerrero = Guerrero("Goku", 10, 100, Saiyajin(false), movTransformaseEnMono, tieneFotoLuna)
+          convertirseEnMono.ejecutar(EstadoResultado(goku, humanoGenerico)).estadoAtacante shouldBe goku
+        }
+
+        "gohan (sin foto) no se transforma" in {
+          val gohan: Guerrero = Guerrero("Gohan", 10, 100, Saiyajin(), movTransformaseEnMono)
+          convertirseEnMono.ejecutar(EstadoResultado(gohan, humanoGenerico)).estadoAtacante shouldBe gohan
+        }
+      }
+      "transformarseEnSS" - {
+        val movTransEnSS = Map[String, Movimiento]((transformarseEnSS.nombre, transformarseEnSS))
+
+        "goku se transforma en SS 1" in {
+          val goku: Guerrero = Guerrero("Goku", 100, 100, Saiyajin(), movTransEnSS)
+
+          transformarseEnSS.ejecutar(EstadoResultado(goku, humanoGenerico)).estadoAtacante shouldBe goku.copy(especie = Saiyajin(estado = SuperSaiyajin(100)), energiaMaxima = 500)
+        }
+
+        "goku se transforma en SS 2" in {
+          val goku: Guerrero = Guerrero("Goku", 100, 100, Saiyajin(estado = SuperSaiyajin(20)), movTransEnSS)
+
+          transformarseEnSS.ejecutar(EstadoResultado(goku, humanoGenerico)).estadoAtacante shouldBe goku.copy(especie = Saiyajin(estado = SuperSaiyajin(20, 2)), energiaMaxima = 200)
+        }
+
+        "goku no se puede transformar por falta de ki" in {
+          val goku: Guerrero = Guerrero("Goku", 10, 100, Saiyajin(), movTransEnSS)
+
+          transformarseEnSS.ejecutar(EstadoResultado(goku, humanoGenerico)).estadoAtacante shouldBe goku
+        }
+
+        "goku no se puede transformar por ser mono" in {
+          val goku: Guerrero = Guerrero("Goku", 100, 100, Saiyajin(estado = Mono), movTransEnSS)
+
+          transformarseEnSS.ejecutar(EstadoResultado(goku, humanoGenerico)).estadoAtacante shouldBe goku
+        }
+
+        "krillin no puede transformarse en SS" in {
+          val krillin: Guerrero = Guerrero("Krillin", 100, 100, Humano, movTransEnSS)
+
+          transformarseEnSS.ejecutar(EstadoResultado(krillin, humanoGenerico)).estadoAtacante shouldBe krillin
+        }
+
+        "SS goku queda inconsciente" in {
+          val goku: Guerrero = Guerrero("Goku", 100, 100, Saiyajin(estado = SuperSaiyajin(20)), movTransEnSS)
+
+          goku.quedarInconsciente shouldBe goku.copy(especie = Saiyajin(true, SaiyajinNormal), energiaMaxima = 20, energia = 20, estado = Inconsciente)
+        }
       }
     }
   }
-
 }
