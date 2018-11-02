@@ -51,9 +51,9 @@ case class Guerrero(nombre: String,
     case _ => restauracion(this)
   }
 
-  def reducirKi(cantidad: Int): Guerrero = hacerAlgo(g =>
-    if(g.energia - cantidad <= 0) g.copy(energia = 0, estado = Muerto)
-    else g.copy(energia = g.energia - cantidad))
+  def reducirKi(cantidad: Int): Guerrero =
+    if(energia - cantidad <= 0) copy(energia = 0, estado = Muerto)
+    else copy(energia = energia - cantidad)
 
   def incrementarKi(cantidad: Int): Guerrero = hacerAlgo(g => g.copy(energia = (g.energia + cantidad).max(g.energiaMaxima)))
 
@@ -67,7 +67,7 @@ case class Guerrero(nombre: String,
     case _ => this
   }).reducirKi(g.energia))
 
-  def quedarInconsiente: Guerrero = hacerAlgo(g => (g.especie match {
+  def quedarInconsciente: Guerrero = hacerAlgo(g => (g.especie match {
     case Fusionado(original, _) => original
     case saiyajin @ Saiyajin(_, _, _) => saiyajin.dejarDeSerSuperSaiyajin(g)
     case _ => this
@@ -89,7 +89,7 @@ case class Guerrero(nombre: String,
     else g.reducirKi(danio))
 
   def listarMovimientos: Map[String, Movimiento] = especie match {
-    case Monstruo(_, movimientosDevorados) => movimientos ++ movimientosDevorados
+    case Monstruo(_, _, movimientosDevorados) => movimientos ++ movimientosDevorados
     case _ => movimientos
   }
 
@@ -179,7 +179,7 @@ case class Saiyajin(tieneCola : Boolean = true,
   require(!esMono || tieneCola, "Un saiyajin no puede ser mono sin tener cola")
 
   def cortarCola(guerrero: Guerrero): Guerrero = guerrero.especie match {
-    case Saiyajin(true, true, _) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, false, 0))
+    case Saiyajin(true, true, _) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, false, 0)).quedarInconsciente
     case Saiyajin(true, _, nivelSS) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, false, nivelSS))
     case _ => guerrero
   }
@@ -198,12 +198,16 @@ case class Saiyajin(tieneCola : Boolean = true,
 }
 case object Androide extends Especie
 case object Namekusein extends Especie
-case class Monstruo(formaDeComer : (Guerrero, Map[String, Movimiento]) => Map[String, Movimiento],
+case class Monstruo(puedeDevorar: Guerrero => Boolean,
+                    formaDeComer : (Guerrero, Map[String, Movimiento]) => Map[String, Movimiento],
                     movimientosDevorados : Map[String, Movimiento] = Map[String, Movimiento]()) extends Especie {
 
   def devorar(self: Guerrero, oponente: Guerrero): EstadoResultado =
-    EstadoResultado(self.copy(especie = this.copy(movimientosDevorados = formaDeComer(oponente, movimientosDevorados))),
+    if(puedeDevorar(oponente) && self.energia > oponente.energia)
+      EstadoResultado(self.copy(especie = this.copy(movimientosDevorados = formaDeComer(oponente, movimientosDevorados))),
               oponente.morir)
+    else
+      EstadoResultado(self, oponente)
 }
 case class Fusionado(original : Guerrero, amigo : Guerrero) extends Especie {
 
@@ -283,7 +287,7 @@ trait AtaqueDeEnergia extends Movimiento
 
 case class Onda(nombre:String, costo: Int) extends AtaqueDeEnergia {
   val danio: EstadoResultado => Int = _.estadoOponente.especie match {
-    case Monstruo(_, _) => costo / 2
+    case Monstruo(_, _, _) => costo / 2
     case _ => costo * 2
   }
 
@@ -333,7 +337,7 @@ case object Filosa extends TipoArma {
   override def procesar(res: EstadoResultado): EstadoResultado = {
     res.estadoOponente.especie match {
       case saiyajin @ Saiyajin(true, _, _) => EstadoResultado(res.estadoAtacante, saiyajin.cortarCola(res.estadoOponente))
-      case _ => EstadoResultado(res.estadoAtacante, res.estadoOponente.reducirKi(res.estadoAtacante.energia / 100))
+      case _ => EstadoResultado(res.estadoAtacante, res.estadoOponente.reducirKi(res.estadoAtacante.energia * 100))
     }
   }
 }
@@ -351,7 +355,7 @@ case class DeFuego(municion: Int) extends TipoArma {
 case object Roma extends TipoArma {
   override def procesar(res: EstadoResultado): EstadoResultado = {
     if(res.estadoOponente.especie != Androide && res.estadoOponente.energia < 300)
-      EstadoResultado(res.estadoAtacante, res.estadoOponente.quedarInconsiente)
+      EstadoResultado(res.estadoAtacante, res.estadoOponente.quedarInconsciente)
     else
       res
   }

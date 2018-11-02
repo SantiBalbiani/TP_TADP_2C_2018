@@ -10,8 +10,7 @@ class ProjectSpec extends FreeSpec with Matchers {
     val usarSemillaHermitanio: Movimiento = UsarItem(SemillaDelHermitanio)
 
     val comerseAlOponente: Movimiento = MovimientoSimple("Comerse al oponente", res => res.estadoAtacante.especie match {
-      case monstruo @Monstruo(_, _) if res.estadoAtacante.energia > res.estadoOponente.energia =>
-        monstruo.devorar(res.estadoAtacante, res.estadoOponente)
+      case monstruo @Monstruo(_, _, _) => monstruo.devorar(res.estadoAtacante, res.estadoOponente)
       case _ => res
     })
 
@@ -32,13 +31,13 @@ class ProjectSpec extends FreeSpec with Matchers {
       })
 
     val explotar: Movimiento = AtaqueFisico("Explotar", res => res.estadoAtacante.especie match {
-      case Monstruo(_,_) => EstadoResultado(res.estadoAtacante.morir, res.estadoOponente.recibirExplosion(res.estadoAtacante.energia * 2))
+      case Monstruo(_, _,_) => EstadoResultado(res.estadoAtacante.morir, res.estadoOponente.recibirExplosion(res.estadoAtacante.energia * 2))
       case Androide => EstadoResultado(res.estadoAtacante.morir, res.estadoOponente.recibirExplosion(res.estadoAtacante.energia * 3))
       case _ => res
     })
 
     "movimientos" - {
-      val humanoGenerico: Guerrero = Guerrero("Dummy", 1, 10, Humano)
+      val humanoGenerico: Guerrero = Guerrero("Dummy", 50, 50, Humano)
       "dejarse fajar" - {
         val movDejarseFajar = Map[String, Movimiento]((dejarseFajar.nombre, dejarseFajar))
         "goku que sabe dejarse fajar lo hace por un turno" in {
@@ -152,6 +151,161 @@ class ProjectSpec extends FreeSpec with Matchers {
             usarPalo.ejecutar(EstadoResultado(humanoConPalo, A17)).estadoOponente shouldBe A17
           }
         }
+
+        "arma filosa" - {
+          val espada = Arma("Espada", Filosa)
+          val usarEspada = UsarItem(espada)
+          val movUsarEspada = Map[String, Movimiento]((usarEspada.nombre, usarEspada))
+          val tieneEspada = Map[String, Item]((espada.nombre, espada))
+          val yajirobe: Guerrero = Guerrero("Yajirobe", 5, 5, Humano, movUsarEspada, tieneEspada)
+
+          "yajirobe ataca a un namekusein fuerte" in {
+            val namekuseinFuerte: Guerrero = Guerrero("N. Fuerte", 510, 510, Namekusein)
+            usarEspada.ejecutar(EstadoResultado(yajirobe, namekuseinFuerte)).estadoOponente shouldBe namekuseinFuerte.copy(energia = 10)
+          }
+
+          "yajirobe ataca a un namekusein debil" in {
+            val namekuseinDebil: Guerrero = Guerrero("N. Debil", 400, 510, Namekusein)
+            usarEspada.ejecutar(EstadoResultado(yajirobe, namekuseinDebil)).estadoOponente shouldBe namekuseinDebil.morir
+          }
+
+          "yajirobe ataca goku (saiyajin sin cola)" in {
+            val goku: Guerrero = Guerrero("Goku", 510, 510, Saiyajin(false))
+            usarEspada.ejecutar(EstadoResultado(yajirobe, goku)).estadoOponente shouldBe goku.copy(energia = 10)
+          }
+
+          "yajirobe ataca a nappa (saiyajin con cola)" in {
+            val nappa: Guerrero = Guerrero("Nappa", 510, 510, Saiyajin(true))
+            usarEspada.ejecutar(EstadoResultado(yajirobe, nappa)).estadoOponente shouldBe nappa.copy(especie = Saiyajin(false), energia = 1)
+          }
+
+          "yajirobe ataca a vegeta (saiyajin hecho mono)" in {
+            val vegeta: Guerrero = Guerrero("Vegeta (Mono)", 510, 510, Saiyajin(true, true))
+            usarEspada.ejecutar(EstadoResultado(yajirobe, vegeta)).estadoOponente shouldBe vegeta.copy(energia = 1, especie = Saiyajin(false), estado = Inconsciente)
+          }
+        }
+
+        "arma de fuego" - {
+          val pistolaCargada = Arma("Pistola", DeFuego(10))
+          val pistolaVacia = Arma("Pistola", DeFuego(0))
+          val usarPistola = UsarItem(pistolaCargada)
+          val movUsarPistola = Map[String, Movimiento]((usarPistola.nombre, usarPistola))
+          val tienePistolaCargada = Map[String, Item]((pistolaCargada.nombre, pistolaCargada))
+          val tienePistolaVacia = Map[String, Item]((pistolaVacia.nombre, pistolaVacia))
+          val ladron: Guerrero = Guerrero("Ladron", 5, 5, Humano, movUsarPistola) // Darle pistola cargada o vacia segun test
+
+          "ladron pierde municion post disparar" in {
+            usarPistola.ejecutar(EstadoResultado(ladron.copy(inventario = tienePistolaCargada), humanoGenerico)).estadoAtacante.inventario shouldBe
+              Map[String, Item]((pistolaCargada.nombre, pistolaCargada.copy(tipoArma = DeFuego(9))))
+          }
+
+          "ladron con municion dispara a un humano generico" in {
+            usarPistola.ejecutar(EstadoResultado(ladron.copy(inventario = tienePistolaCargada), humanoGenerico)).estadoOponente shouldBe humanoGenerico.reducirKi(20)
+          }
+
+          "ladron sin municion dispara a un humano generico" in {
+            usarPistola.ejecutar(EstadoResultado(ladron.copy(inventario = tienePistolaVacia), humanoGenerico)).estadoOponente shouldBe humanoGenerico
+          }
+
+          "ladron dispara a Goku" in {
+            val goku: Guerrero = Guerrero("Goku", 100, 100, Saiyajin())
+
+            usarPistola.ejecutar(EstadoResultado(ladron.copy(inventario = tienePistolaCargada), goku)).estadoOponente shouldBe goku
+          }
+
+          "ladron dispara a piccolo" in {
+            val piccolo: Guerrero = Guerrero("Piccolo", 100, 100, Namekusein)
+
+            usarPistola.ejecutar(EstadoResultado(ladron.copy(inventario = tienePistolaCargada), piccolo)).estadoOponente shouldBe piccolo
+          }
+
+          "ladron dispara a piccolo (inconsciente)" in {
+            val piccolo: Guerrero = Guerrero("Piccolo", 100, 100, Namekusein, estado = Inconsciente)
+
+            usarPistola.ejecutar(EstadoResultado(ladron.copy(inventario = tienePistolaCargada), piccolo)).estadoOponente shouldBe piccolo.reducirKi(10)
+          }
+        }
+      }
+
+      "Comerse al oponente" - {
+        val movComerOponente = Map[String, Movimiento]((comerseAlOponente.nombre, comerseAlOponente))
+
+        "Cell se come a A17" in {
+          val formaDeComerDeCell: (Guerrero, Map[String, Movimiento]) => Map[String, Movimiento] = (oponente, movs) => movs ++ oponente.listarMovimientos
+          val cell: Guerrero = Guerrero("Cell", 110, 110, Monstruo(_.especie == Androide, formaDeComerDeCell), movComerOponente)
+          val A17: Guerrero = Guerrero("Androide 17", 100, 100, Androide, Map[String, Movimiento]((dejarseFajar.nombre, dejarseFajar)))
+
+          val postComida: EstadoResultado = comerseAlOponente.ejecutar(EstadoResultado(cell, A17))
+
+          postComida.estadoAtacante.listarMovimientos shouldBe
+            Map[String,Movimiento]((comerseAlOponente.nombre, comerseAlOponente), (dejarseFajar.nombre, dejarseFajar))
+          postComida.estadoOponente.estado shouldBe Muerto
+        }
+
+        "Cell se come a A17 y despues a A18" in {
+          val formaDeComerDeCell: (Guerrero, Map[String, Movimiento]) => Map[String, Movimiento] = (oponente, movs) => movs ++ oponente.listarMovimientos
+          val cell: Guerrero = Guerrero("Cell", 110, 110, Monstruo(_.especie == Androide, formaDeComerDeCell), movComerOponente)
+          val A17: Guerrero = Guerrero("Androide 17", 100, 100, Androide, Map[String, Movimiento]((dejarseFajar.nombre, dejarseFajar)))
+          val A18: Guerrero = Guerrero("Androide 18", 100, 100, Androide, Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio)))
+
+          val cellPostPrimeraComida: Guerrero = comerseAlOponente.ejecutar(EstadoResultado(cell, A17)).estadoAtacante
+          val postSegundaComida: EstadoResultado = comerseAlOponente.ejecutar(EstadoResultado(cellPostPrimeraComida, A18))
+
+          postSegundaComida.estadoAtacante.listarMovimientos shouldBe
+            Map[String,Movimiento]((comerseAlOponente.nombre, comerseAlOponente), (dejarseFajar.nombre, dejarseFajar),
+              (usarSemillaHermitanio.nombre, usarSemillaHermitanio))
+        }
+
+        "Cell trata de comer a Goku" in {
+          val formaDeComerDeCell: (Guerrero, Map[String, Movimiento]) => Map[String, Movimiento] = (oponente, movs) => movs ++ oponente.listarMovimientos
+          val cell: Guerrero = Guerrero("Cell", 110, 110, Monstruo(_.especie == Androide, formaDeComerDeCell), movComerOponente)
+          val goku: Guerrero = Guerrero("Goku", 100, 100, Saiyajin(), Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio)))
+
+          val postComida:EstadoResultado = comerseAlOponente.ejecutar(EstadoResultado(cell, goku))
+
+          postComida.estadoAtacante.listarMovimientos shouldBe cell.listarMovimientos
+          postComida.estadoOponente.estado shouldBe Normal
+        }
+
+        "Goku trata de comer a Cell" in {
+          val formaDeComerDeCell: (Guerrero, Map[String, Movimiento]) => Map[String, Movimiento] = (oponente, movs) => movs ++ oponente.listarMovimientos
+          val cell: Guerrero = Guerrero("Cell", 110, 110, Monstruo(_.especie == Androide, formaDeComerDeCell), movComerOponente ++ Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio)))
+          val goku: Guerrero = Guerrero("Goku", 100, 100, Saiyajin(), movComerOponente)
+
+          val postComida:EstadoResultado = comerseAlOponente.ejecutar(EstadoResultado(goku, cell))
+
+          postComida.estadoAtacante.listarMovimientos shouldBe goku.listarMovimientos
+          postComida.estadoOponente.estado shouldBe Normal
+        }
+
+        "Cell trata de comer a un adroide más fuerte" in {
+          val formaDeComerDeCell: (Guerrero, Map[String, Movimiento]) => Map[String, Movimiento] = (oponente, movs) => movs ++ oponente.listarMovimientos
+          val cell: Guerrero = Guerrero("Cell", 110, 110, Monstruo(_.especie == Androide, formaDeComerDeCell), movComerOponente)
+          val superA17: Guerrero = Guerrero("Super Androide 17", 200, 200, Androide, Map[String, Movimiento]((dejarseFajar.nombre, dejarseFajar)))
+
+          val postComida: EstadoResultado = comerseAlOponente.ejecutar(EstadoResultado(cell, superA17))
+
+          postComida.estadoAtacante.listarMovimientos shouldBe cell.listarMovimientos
+          postComida.estadoOponente.estado shouldBe Normal
+        }
+
+        "Majin Buu se come a piccolo y gohan" in {
+          val majinBuu: Guerrero = Guerrero("Majin Buu", 110, 110, Monstruo(_=>true, (op, _) => op.listarMovimientos), movComerOponente)
+          val piccolo: Guerrero = Guerrero("Piccolo", 100, 100, Namekusein, Map[String, Movimiento]((cargarKi.nombre, cargarKi)))
+          val gohan: Guerrero = Guerrero("Gohan", 100, 100, Saiyajin())
+
+          val postPrimeraComida: EstadoResultado = comerseAlOponente.ejecutar(EstadoResultado(majinBuu, piccolo))
+          val postSegundaComida: EstadoResultado = comerseAlOponente.ejecutar(postPrimeraComida.copy(estadoOponente = gohan))
+
+          postPrimeraComida.estadoAtacante.listarMovimientos shouldBe majinBuu.movimientos ++ piccolo.movimientos
+          postPrimeraComida.estadoOponente.estado shouldBe Muerto
+          postSegundaComida.estadoAtacante.listarMovimientos shouldBe majinBuu.movimientos ++ gohan.movimientos
+          postSegundaComida.estadoOponente.estado shouldBe Muerto
+        }
+      }
+
+      "transformarse en mono" - {
+        
       }
     }
   }
