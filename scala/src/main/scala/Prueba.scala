@@ -21,10 +21,10 @@ case class Guerrero(nombre: String,
                     estado : Estado = Normal) {
   
   require(energia > 0, "La energia no puede ser negativa")
-  require(energiaMaxima > energia, "La energia no puede superar el maximo")
+  require(energiaMaxima >= energia, "La energia no puede superar el maximo")
   require(energiaMaxima > 0, "La energia maxima no puede ser negativa")
   require(turnosSiendoFajado >= 0, "turnosSiendoFajado debe ser positivo o 0")
-  require(energia == 0 && estado == Normal, "El guerrero no puede estar bien sin energia")
+  require((estado == Muerto && energia == 0) || (estado != Muerto && energia > 0), "El guerrero no puede estar bien sin energia")
 
   def hacerAlgo(f: Guerrero => Guerrero): Guerrero = this.estado match {
     case Normal => f(this).copy(turnosSiendoFajado = 0)
@@ -102,6 +102,8 @@ case class Guerrero(nombre: String,
   def tieneSieteEsferas: Boolean = inventario.exists({
     case (_, EsferasDelDragon(cantidad)) => cantidad == 7
     case (_, _) => false})
+
+  def sabeMovimiento(movimiento: String): Boolean = listarMovimientos.contains(movimiento)
 
   def movimientoMasEfectivoContra(oponente: Guerrero)(criterio: EstadoResultado => tipos.RetornoCriterio): Option[Movimiento] = {
     val estadoInicial: EstadoResultado = EstadoResultado(this, oponente)
@@ -232,7 +234,7 @@ trait Movimiento {
   val nombre: String
   val accion: tipos.Accion
 
-  def ejecutar(resultado: EstadoResultado): EstadoResultado = accion(resultado)
+  def ejecutar(resultado: EstadoResultado): EstadoResultado = if(resultado.estadoAtacante.sabeMovimiento(nombre)) accion(resultado) else resultado
 }
 
 case class UsarItem(item: Item) extends Movimiento {
@@ -260,13 +262,12 @@ trait AtaqueDeEnergia extends Movimiento
 {
   val danio: EstadoResultado => Int
   val efecto: Guerrero => Guerrero = g => g
-  override val accion: Accion = res => res
-
-  override def ejecutar(resultado: EstadoResultado): EstadoResultado =
-    if(resultado.estadoOponente == Androide)
-      EstadoResultado(resultado.estadoAtacante, resultado.estadoOponente.incrementarKi(danio(resultado)))
+  val accion: Accion = res =>
+    if(res.estadoOponente == Androide)
+     EstadoResultado(res.estadoAtacante, res.estadoOponente.incrementarKi(danio(res)))
     else
-      EstadoResultado(efecto(resultado.estadoAtacante), resultado.estadoOponente.reducirKi(danio(resultado)))
+     EstadoResultado(efecto(res.estadoAtacante), res.estadoOponente.reducirKi(danio(res)))
+
 
 }
 

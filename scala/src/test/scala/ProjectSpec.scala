@@ -37,9 +37,11 @@ class ProjectSpec extends FreeSpec with Matchers {
       case _ => res
     })
 
-    "tests" - {
-      "debería resolver las dependencias y pasar este test" in {
-        Prueba.materia shouldBe "tadp"
+    "movimientos" - {
+      val guerreroDummy: Guerrero = Guerrero("Dummy", 100, 100, Humano)
+      "dejarse fajar" in {
+        val goku: Guerrero = Guerrero("Goku", 100, 100, Saiyajin(), Map[String, Movimiento]((dejarseFajar.nombre, dejarseFajar)))
+        dejarseFajar.ejecutar(EstadoResultado(goku, guerreroDummy)).estadoAtacante shouldBe goku.copy(turnosSiendoFajado = 1)
       }
     }
   }
