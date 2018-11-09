@@ -8,8 +8,11 @@ object tipos{
 }
 
 object PuedeUsarMagia {
-  def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie == Namekusein || arg.especie.isInstanceOf[Monstruo] || arg.tieneSieteEsferas) Some(arg) else None
+  def unapply(arg: Guerrero): Option[Guerrero] = if (arg.especie == Namekusein || arg.especie.isInstanceOf[Monstruo] || tieneSieteEsferas(arg)) Some(arg) else None
+
+  def tieneSieteEsferas(arg: Guerrero): Boolean = arg.tieneItem("Esferas del dragon (7)")
 }
+
 
 object PuedeFusionarse {
   def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie == Humano || arg.especie.isInstanceOf[Saiyajin] || arg.especie == Namekusein) Some(arg) else None
@@ -59,7 +62,7 @@ case class Guerrero(nombre: String,
     if(energia - cantidad <= 0) copy(energia = 0, estado = Muerto)
     else copy(energia = energia - cantidad)
 
-  def incrementarKi(cantidad: Int): Guerrero = hacerAlgo(g => g.copy(energia = (g.energia + cantidad).max(g.energiaMaxima)))
+  def incrementarKi(cantidad: Int): Guerrero = hacerAlgo(g => g.copy(energia = (g.energia + cantidad).min(g.energiaMaxima)))
 
   def incrementarMaximo(cantidad: Int): Guerrero = hacerAlgo(g => g.copy(energiaMaxima = g.energiaMaxima + cantidad))
 
@@ -117,10 +120,6 @@ case class Guerrero(nombre: String,
 
   def tieneItem(item: String): Boolean = inventario.contains(item)
 
-  def tieneSieteEsferas: Boolean = inventario.exists({
-    case (_, EsferasDelDragon(cantidad)) => cantidad == 7
-    case (_, _) => false})
-
   def sabeMovimiento(movimiento: String): Boolean = listarMovimientos.contains(movimiento)
 
   def movimientoMasEfectivoContra(oponente: Guerrero)(criterio: EstadoResultado => tipos.RetornoCriterio): Option[Movimiento] = {
@@ -129,8 +128,12 @@ case class Guerrero(nombre: String,
       movimiento => criterio(movimiento._2.ejecutar(estadoInicial)) > 0
     val usarCriterio: ((String, Movimiento)) => tipos.RetornoCriterio =
       movimiento => criterio(movimiento._2.ejecutar(estadoInicial))
+    val movimientosValidos = this.listarMovimientos.filter(filtrarMovimientosValidos)
 
-    Try(this.listarMovimientos.filter(filtrarMovimientosValidos).maxBy[tipos.RetornoCriterio](usarCriterio)._2).toOption
+    if(movimientosValidos.isEmpty)
+      None
+    else
+     Some(movimientosValidos.maxBy[tipos.RetornoCriterio](usarCriterio)._2)
   }
 
   def pelearRound(movimiento: Movimiento)(oponente: Guerrero): EstadoResultado = {
@@ -257,7 +260,7 @@ case object FotoDeLuna extends Item {
 }
 
 case class EsferasDelDragon(cantidad: Int) extends Item {
-  val nombre: String = "Esferas del dragon"
+  val nombre: String = "Esferas del dragon (" + cantidad + ")" //No me acuerdo como se interpolaban strings
 }
 
 trait Movimiento {
@@ -296,8 +299,8 @@ trait AtaqueDeEnergia extends Movimiento
   val danio: EstadoResultado => Int
   val efecto: Guerrero => Guerrero = g => g
   val accion: Accion = res =>
-    if(res.estadoOponente == Androide)
-     EstadoResultado(res.estadoAtacante, res.estadoOponente.incrementarKi(danio(res)))
+    if(res.estadoOponente.especie == Androide)
+     EstadoResultado(efecto(res.estadoAtacante), res.estadoOponente.incrementarKi(danio(res)))
     else
      EstadoResultado(efecto(res.estadoAtacante), res.estadoOponente.reducirKi(danio(res)))
 
@@ -305,12 +308,13 @@ trait AtaqueDeEnergia extends Movimiento
 }
 
 case class Onda(nombre:String, costo: Int) extends AtaqueDeEnergia {
-  val danio: EstadoResultado => Int = _.estadoOponente.especie match {
+  val danio: EstadoResultado => Int = res => res.estadoOponente.especie match {
+    case _ if res.estadoAtacante.energia < costo => 0
     case Monstruo(_, _, _) => costo / 2
     case _ => costo * 2
   }
 
-  override val efecto: Guerrero => Guerrero = {_.reducirKi(costo)}
+  override val efecto: Guerrero => Guerrero = _.hacerAlgo({g => if(g.energia > costo) g.reducirKi(costo) else g})
 }
 
 case object Genkidama extends AtaqueDeEnergia {
