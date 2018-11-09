@@ -532,8 +532,7 @@ class ProjectSpec extends FreeSpec with Matchers {
         val unTipo: Guerrero = Guerrero("Suicida", 10, 50, Humano,
           Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (dejarseFajar.nombre, dejarseFajar)),
           Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio)))
-        //Criterio rompe si se logra suicidar
-        val criterio: EstadoResultado => tipos.RetornoCriterio = {case EstadoResultado(estadoAtacante, estadoOponente) => 1.0 / estadoAtacante.energia}
+        val criterio: EstadoResultado => tipos.RetornoCriterio = {case EstadoResultado(estadoAtacante, estadoOponente) => 1.0 / estadoAtacante.energia.max(0.5)}
 
         unTipo.movimientoMasEfectivoContra(humanoGenerico)(criterio) shouldBe Some(dejarseFajar)
       }
@@ -542,11 +541,13 @@ class ProjectSpec extends FreeSpec with Matchers {
         val trunks: Guerrero = Guerrero("Trunks", 10, 50, Humano,
           Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (usarEspada.nombre, usarEspada), (dejarseFajar.nombre, dejarseFajar)),
           Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio), (espada.nombre, espada)))
-        //Criterio rompe si oponente muere
-        val criterio: EstadoResultado => tipos.RetornoCriterio = {case EstadoResultado(estadoAtacante, estadoOponente) => 1.0 / estadoOponente.energia}
+        val criterio: EstadoResultado => tipos.RetornoCriterio = {case EstadoResultado(estadoAtacante, estadoOponente) => 1.0 / estadoOponente.energia.max(0.5)}
 
         trunks.movimientoMasEfectivoContra(humanoGenerico)(criterio) shouldBe Some(usarEspada)
       }
+    }
+    "Pelear Round" - {
+
     }
   }
 }

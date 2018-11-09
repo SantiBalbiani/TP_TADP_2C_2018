@@ -141,8 +141,7 @@ case class Guerrero(nombre: String,
   }
 
   def contraAtacar(oponente:Guerrero): Option[EstadoResultado] = {
-    //El criterio rompe si el oponente se muere
-    val criterioDeMasEnergia: EstadoResultado => tipos.RetornoCriterio = {case EstadoResultado(atacante, oponente) => atacante.energia / oponente.energia }
+    val criterioDeMasEnergia: EstadoResultado => tipos.RetornoCriterio = {case EstadoResultado(atacante, oponente) => atacante.energia / oponente.energia.max(0.5) }
     movimientoMasEfectivoContra(oponente)(criterioDeMasEnergia).
       map(unMovimiento => unMovimiento.ejecutar(EstadoResultado(this, oponente)))
   }
