@@ -36,6 +36,8 @@ class ProjectSpec extends FreeSpec with Matchers {
       case _ => res
     })
 
+    val kamehameha: Movimiento = Onda("Kamehameha", 20)
+
     "movimientos" - {
       val humanoGenerico: Guerrero = Guerrero("Dummy", 50, 50, Humano)
       "dejarse fajar" - {
@@ -443,78 +445,79 @@ class ProjectSpec extends FreeSpec with Matchers {
             MGN.ejecutar(EstadoResultado(krillin, A17)) shouldBe EstadoResultado(krillin.copy(energia = 90), A17)
           }
         }
-      }
 
-      "Explotar" - {
-        "cell explota" in {
-          val cell: Guerrero = Guerrero("Cell", 10, 10, Monstruo({g => false}, {_.movimientos ++ _}), Map[String, Movimiento]((explotar.nombre, explotar)))
-          val medidor: Guerrero = Guerrero("", 25, 25, Humano)
+        "Explotar" - {
+          "cell explota" in {
+            val cell: Guerrero = Guerrero("Cell", 10, 10, Monstruo({g => false}, {_.movimientos ++ _}), Map[String, Movimiento]((explotar.nombre, explotar)))
+            val medidor: Guerrero = Guerrero("", 25, 25, Humano)
 
-          explotar.ejecutar(EstadoResultado(cell, medidor)) shouldBe EstadoResultado(cell.copy(energia = 0, estado = Muerto), medidor.copy(energia = 5))
-        }
-        "A16 explota" in {
-          val A16: Guerrero = Guerrero("Androide 16", 10, 10, Androide, Map[String, Movimiento]((explotar.nombre, explotar)))
-          val medidor: Guerrero = Guerrero("", 35, 35, Humano)
+            explotar.ejecutar(EstadoResultado(cell, medidor)) shouldBe EstadoResultado(cell.copy(energia = 0, estado = Muerto), medidor.copy(energia = 5))
+          }
+          "A16 explota" in {
+            val A16: Guerrero = Guerrero("Androide 16", 10, 10, Androide, Map[String, Movimiento]((explotar.nombre, explotar)))
+            val medidor: Guerrero = Guerrero("", 35, 35, Humano)
 
-          explotar.ejecutar(EstadoResultado(A16, medidor)) shouldBe EstadoResultado(A16.copy(energia = 0, estado = Muerto), medidor.copy(energia = 5))
-        }
+            explotar.ejecutar(EstadoResultado(A16, medidor)) shouldBe EstadoResultado(A16.copy(energia = 0, estado = Muerto), medidor.copy(energia = 5))
+          }
 
-        "humano explota" in {
-          val humano: Guerrero = Guerrero("humano", 10, 10, Humano, Map[String, Movimiento]((explotar.nombre, explotar)))
-          val medidor: Guerrero = Guerrero("", 35, 35, Humano)
+          "humano explota" in {
+            val humano: Guerrero = Guerrero("humano", 10, 10, Humano, Map[String, Movimiento]((explotar.nombre, explotar)))
+            val medidor: Guerrero = Guerrero("", 35, 35, Humano)
 
-          explotar.ejecutar(EstadoResultado(humano, medidor)) shouldBe EstadoResultado(humano, medidor)
-        }
-        "A16 explota contra Piccolo" in {
-          val A16: Guerrero = Guerrero("Androide 16", 10, 10, Androide, Map[String, Movimiento]((explotar.nombre, explotar)))
-          val piccolo: Guerrero = Guerrero("Piccolo", 25, 35, Namekusein)
+            explotar.ejecutar(EstadoResultado(humano, medidor)) shouldBe EstadoResultado(humano, medidor)
+          }
+          "A16 explota contra Piccolo" in {
+            val A16: Guerrero = Guerrero("Androide 16", 10, 10, Androide, Map[String, Movimiento]((explotar.nombre, explotar)))
+            val piccolo: Guerrero = Guerrero("Piccolo", 25, 35, Namekusein)
 
-          explotar.ejecutar(EstadoResultado(A16, piccolo)) shouldBe EstadoResultado(A16.copy(energia = 0, estado = Muerto), piccolo.copy(energia = 1))
+            explotar.ejecutar(EstadoResultado(A16, piccolo)) shouldBe EstadoResultado(A16.copy(energia = 0, estado = Muerto), piccolo.copy(energia = 1))
+          }
         }
-      }
-      "Onda de energia" - {
-        val kamehameha: Movimiento = Onda("Kamehameha", 20)
-        val movKame = Map[String, Movimiento]((kamehameha.nombre, kamehameha))
-        val krillin: Guerrero = Guerrero("Krillin", 50, 50, Humano, movKame)
-        "Krillin kamehameha a Yamcha" in {
-          val yamcha: Guerrero = Guerrero("Yamcha", 50, 50, Humano)
+        "Onda de energia" - {
+          val movKame = Map[String, Movimiento]((kamehameha.nombre, kamehameha))
+          val krillin: Guerrero = Guerrero("Krillin", 50, 50, Humano, movKame)
+          "Krillin kamehameha a Yamcha" in {
+            val yamcha: Guerrero = Guerrero("Yamcha", 50, 50, Humano)
 
-          kamehameha.ejecutar(EstadoResultado(krillin, yamcha)) shouldBe EstadoResultado(krillin.copy(energia = 30), yamcha.copy(energia = 10))
-        }
-        "Krillin kamehameha a cell" in {
-          val cell: Guerrero = Guerrero("Cell", 15, 15, Monstruo({g => false}, {_.movimientos ++ _}))
+            kamehameha.ejecutar(EstadoResultado(krillin, yamcha)) shouldBe EstadoResultado(krillin.copy(energia = 30), yamcha.copy(energia = 10))
+          }
+          "Krillin kamehameha a cell" in {
+            val cell: Guerrero = Guerrero("Cell", 15, 15, Monstruo({g => false}, {_.movimientos ++ _}))
 
-          kamehameha.ejecutar(EstadoResultado(krillin, cell)) shouldBe EstadoResultado(krillin.copy(energia = 30), cell.copy(energia = 5))
-        }
-        "Krillin debil falla kamehameha" in {
-          kamehameha.ejecutar(EstadoResultado(krillin.copy(energia = 1), humanoGenerico)) shouldBe EstadoResultado(krillin.copy(energia = 1), humanoGenerico)
-        }
+            kamehameha.ejecutar(EstadoResultado(krillin, cell)) shouldBe EstadoResultado(krillin.copy(energia = 30), cell.copy(energia = 5))
+          }
+          "Krillin debil falla kamehameha" in {
+            kamehameha.ejecutar(EstadoResultado(krillin.copy(energia = 1), humanoGenerico)) shouldBe EstadoResultado(krillin.copy(energia = 1), humanoGenerico)
+          }
 
-        "Krillin kamehameha a Androide 17" in {
-          val A17: Guerrero = Guerrero("Androide 17", 10, 60, Androide)
+          "Krillin kamehameha a Androide 17" in {
+            val A17: Guerrero = Guerrero("Androide 17", 10, 60, Androide)
 
-          kamehameha.ejecutar(EstadoResultado(krillin, A17)) shouldBe EstadoResultado(krillin.copy(energia = 30), A17.copy(energia = 50))
+            kamehameha.ejecutar(EstadoResultado(krillin, A17)) shouldBe EstadoResultado(krillin.copy(energia = 30), A17.copy(energia = 50))
+          }
         }
-      }
-      "Genkidama" - {
-        val kamehameha: Movimiento = Onda("Kamehameha", 20)
-        val movGenkidama = Map[String, Movimiento]((Genkidama.nombre, Genkidama), (dejarseFajar.nombre, dejarseFajar), (kamehameha.nombre, kamehameha))
-        val goku: Guerrero = Guerrero("Goku", 10, 10, Saiyajin(), movGenkidama)
-        val medidor: Guerrero = Guerrero("", 10000, 10000, Humano)
-        "Goku sin ser fajado no hace daño" in {
-          Genkidama.ejecutar(EstadoResultado(goku, medidor)) shouldBe EstadoResultado(goku, medidor)
-        }
-        "Goku con un turno de ser fajado" in {
-          Genkidama.ejecutar(EstadoResultado(goku.copy(turnosSiendoFajado = 1), medidor)) shouldBe EstadoResultado(goku.copy(turnosSiendoFajado = 0), medidor.copy(energia = 9990))
-        }
-        "Goku con dos turnos de ser fajado" in {
-          Genkidama.ejecutar(EstadoResultado(goku.copy(turnosSiendoFajado = 2), medidor)) shouldBe EstadoResultado(goku.copy(turnosSiendoFajado = 0), medidor.copy(energia = 9900))
-        }
-        "Goku fajado un turno seguido de kamehameha fallido" in {
-          val postKame: EstadoResultado = kamehameha.ejecutar(dejarseFajar.ejecutar(EstadoResultado(goku, medidor)))
-          Genkidama.ejecutar(postKame) shouldBe EstadoResultado(goku, medidor)
+        "Genkidama" - {
+          val movGenkidama = Map[String, Movimiento]((Genkidama.nombre, Genkidama), (dejarseFajar.nombre, dejarseFajar), (kamehameha.nombre, kamehameha))
+          val goku: Guerrero = Guerrero("Goku", 10, 10, Saiyajin(), movGenkidama)
+          val medidor: Guerrero = Guerrero("", 10000, 10000, Humano)
+          "Goku sin ser fajado no hace daño" in {
+            Genkidama.ejecutar(EstadoResultado(goku, medidor)) shouldBe EstadoResultado(goku, medidor)
+          }
+          "Goku con un turno de ser fajado" in {
+            Genkidama.ejecutar(EstadoResultado(goku.copy(turnosSiendoFajado = 1), medidor)) shouldBe EstadoResultado(goku.copy(turnosSiendoFajado = 0), medidor.copy(energia = 9990))
+          }
+          "Goku con dos turnos de ser fajado" in {
+            Genkidama.ejecutar(EstadoResultado(goku.copy(turnosSiendoFajado = 2), medidor)) shouldBe EstadoResultado(goku.copy(turnosSiendoFajado = 0), medidor.copy(energia = 9900))
+          }
+          "Goku fajado un turno seguido de kamehameha fallido" in {
+            val postKame: EstadoResultado = kamehameha.ejecutar(dejarseFajar.ejecutar(EstadoResultado(goku, medidor)))
+            Genkidama.ejecutar(postKame) shouldBe EstadoResultado(goku, medidor)
+          }
         }
       }
+    }
+    "Movimiento más efectivo" - {
+
     }
   }
 }

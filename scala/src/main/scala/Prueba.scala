@@ -2,7 +2,7 @@ import tipos.{Accion, RetornoCriterio}
 
 object tipos{
   type Accion = EstadoResultado => EstadoResultado
-  type RetornoCriterio = Int
+  type RetornoCriterio = Double
 }
 
 object EspecieConMagia {
@@ -134,7 +134,6 @@ case class Guerrero(nombre: String,
   }
 
   def pelearRound(movimiento: Movimiento)(oponente: Guerrero): EstadoResultado = {
-    //Este criterio solo busca la mayor ventaja (Posible solucion: cambiar criterio para que devuelva punto flotante y hacer la division de la energia)
     val primerAtaque: EstadoResultado = movimiento.ejecutar(EstadoResultado(this, oponente))
     primerAtaque.estadoOponente.contraAtacar(primerAtaque.estadoAtacante).map({
           case EstadoResultado(oponente, self) => EstadoResultado(self, oponente)
@@ -142,7 +141,7 @@ case class Guerrero(nombre: String,
   }
 
   def contraAtacar(oponente:Guerrero): Option[EstadoResultado] = {
-    val criterioDeMasEnergia: EstadoResultado => tipos.RetornoCriterio = {case EstadoResultado(atacante, oponente) => atacante.energia - oponente.energia}
+    val criterioDeMasEnergia: EstadoResultado => tipos.RetornoCriterio = {case EstadoResultado(atacante, oponente) => oponente.energia / atacante.energia }
     movimientoMasEfectivoContra(oponente)(criterioDeMasEnergia).
       map(unMovimiento => unMovimiento.ejecutar(EstadoResultado(this, oponente)))
   }
