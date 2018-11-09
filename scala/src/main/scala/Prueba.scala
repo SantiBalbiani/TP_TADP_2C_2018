@@ -1,18 +1,15 @@
 import tipos.{Accion, RetornoCriterio}
 
-import scala.util.Try
-
 object tipos{
   type Accion = EstadoResultado => EstadoResultado
   type RetornoCriterio = Int
 }
 
-object PuedeUsarMagia {
-  def unapply(arg: Guerrero): Option[Guerrero] = if (arg.especie == Namekusein || arg.especie.isInstanceOf[Monstruo] || tieneSieteEsferas(arg)) Some(arg) else None
+object EspecieConMagia {
+  def unapply(arg: Guerrero): Option[Guerrero] = if (arg.especie == Namekusein || arg.especie.isInstanceOf[Monstruo]) Some(arg) else None
 
-  def tieneSieteEsferas(arg: Guerrero): Boolean = arg.tieneItem("Esferas del dragon (7)")
+  val tieneSieteEsferas:  Guerrero => Boolean = arg => arg.tieneItem("Esferas del dragon (7)")
 }
-
 
 object PuedeFusionarse {
   def unapply(arg: Guerrero): Option[Guerrero] = if(arg.especie == Humano || arg.especie.isInstanceOf[Saiyajin] || arg.especie == Namekusein) Some(arg) else None
@@ -289,7 +286,9 @@ case class Fusion(amigo: Guerrero) extends Movimiento {
 
 case class Magia(nombre: String, hechizo: tipos.Accion) extends Movimiento {
   val accion: tipos.Accion = res => res.estadoAtacante match {
-    case PuedeUsarMagia(_) => hechizo(res)
+    case EspecieConMagia(_) => hechizo(res)
+    case atacante if EspecieConMagia.tieneSieteEsferas(atacante) => hechizo(EstadoResultado(atacante.copy(inventario = atacante.inventario - "Esferas del dragon (7)"
+), res.estadoOponente))
     case _ => res
   }
 }

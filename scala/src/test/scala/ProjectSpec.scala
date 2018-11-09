@@ -407,7 +407,7 @@ class ProjectSpec extends FreeSpec with Matchers {
         val sieteEsferas: Item = EsferasDelDragon(7)
         "Un krillin (con siete esferas) le quita toda la energia al oponente" in {
           drenarEnergia.ejecutar(EstadoResultado(krillin.copy(inventario = Map[String, Item]((sieteEsferas.nombre, sieteEsferas))), humanoGenerico)) shouldBe
-            EstadoResultado(krillin.copy(inventario = Map[String, Item]((sieteEsferas.nombre, sieteEsferas))), humanoGenerico.copy(energia = 1))
+            EstadoResultado(krillin, humanoGenerico.copy(energia = 1))
         }
 
         "Un krillin falla en quitarle toda la energia al oponente" in {
