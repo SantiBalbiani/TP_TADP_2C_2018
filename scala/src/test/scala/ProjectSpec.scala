@@ -38,8 +38,12 @@ class ProjectSpec extends FreeSpec with Matchers {
 
     val kamehameha: Movimiento = Onda("Kamehameha", 20)
 
+    val espada = Arma("Espada", Filosa)
+    val usarEspada = UsarItem(espada)
+
+    val humanoGenerico: Guerrero = Guerrero("Dummy", 50, 50, Humano)
+
     "movimientos" - {
-      val humanoGenerico: Guerrero = Guerrero("Dummy", 50, 50, Humano)
       "dejarse fajar" - {
         val movDejarseFajar = Map[String, Movimiento]((dejarseFajar.nombre, dejarseFajar))
         "goku que sabe dejarse fajar lo hace por un turno" in {
@@ -155,8 +159,6 @@ class ProjectSpec extends FreeSpec with Matchers {
         }
 
         "arma filosa" - {
-          val espada = Arma("Espada", Filosa)
-          val usarEspada = UsarItem(espada)
           val movUsarEspada = Map[String, Movimiento]((usarEspada.nombre, usarEspada))
           val tieneEspada = Map[String, Item]((espada.nombre, espada))
           val yajirobe: Guerrero = Guerrero("Yajirobe", 5, 5, Humano, movUsarEspada, tieneEspada)
@@ -517,7 +519,34 @@ class ProjectSpec extends FreeSpec with Matchers {
       }
     }
     "Movimiento más efectivo" - {
+      "Yajirobe quiere quedar con la mayor cantidad de energia" in {
+        val yajirobe: Guerrero = Guerrero("Yajirobe", 10, 50, Humano,
+          Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (usarEspada.nombre, usarEspada), (dejarseFajar.nombre, dejarseFajar)),
+          Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio), (espada.nombre, espada)))
+        val criterio: EstadoResultado => tipos.RetornoCriterio = {case EstadoResultado(estadoAtacante, estadoOponente) => estadoAtacante.energia}
 
+        yajirobe.movimientoMasEfectivoContra(humanoGenerico)(criterio) shouldBe Some(usarSemillaHermitanio)
+      }
+
+      "Un tipo se quiere suicidar" in {
+        val unTipo: Guerrero = Guerrero("Suicida", 10, 50, Humano,
+          Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (dejarseFajar.nombre, dejarseFajar)),
+          Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio)))
+        //Criterio rompe si se logra suicidar
+        val criterio: EstadoResultado => tipos.RetornoCriterio = {case EstadoResultado(estadoAtacante, estadoOponente) => 1.0 / estadoAtacante.energia}
+
+        unTipo.movimientoMasEfectivoContra(humanoGenerico)(criterio) shouldBe Some(dejarseFajar)
+      }
+
+      "Trunks quiere hacer mierda a su oponente" in {
+        val trunks: Guerrero = Guerrero("Trunks", 10, 50, Humano,
+          Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (usarEspada.nombre, usarEspada), (dejarseFajar.nombre, dejarseFajar)),
+          Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio), (espada.nombre, espada)))
+        //Criterio rompe si oponente muere
+        val criterio: EstadoResultado => tipos.RetornoCriterio = {case EstadoResultado(estadoAtacante, estadoOponente) => 1.0 / estadoOponente.energia}
+
+        trunks.movimientoMasEfectivoContra(humanoGenerico)(criterio) shouldBe Some(usarEspada)
+      }
     }
   }
 }
