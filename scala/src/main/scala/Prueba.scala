@@ -3,6 +3,7 @@ import tipos.{Accion, RetornoCriterio}
 object tipos{
   type Accion = EstadoResultado => EstadoResultado
   type RetornoCriterio = Double
+  type Criterio = EstadoResultado => RetornoCriterio
 }
 
 object EspecieConMagia {
@@ -66,7 +67,7 @@ case class Guerrero(nombre: String,
   def reducirMaximo(cantidad: Int): Guerrero =
     hacerAlgo(g =>
       if(g.energiaMaxima - cantidad > 0)
-        g.copy(energia = g.energia.min(g.energiaMaxima - cantidad), energiaMaxima = (g.energiaMaxima - cantidad))
+        g.copy(energia = g.energia.min(g.energiaMaxima - cantidad), energiaMaxima = g.energiaMaxima - cantidad)
       else
         g.copy(energia = 1, energiaMaxima = 1))
 
@@ -119,7 +120,7 @@ case class Guerrero(nombre: String,
 
   def sabeMovimiento(movimiento: String): Boolean = listarMovimientos.contains(movimiento)
 
-  def movimientoMasEfectivoContra(oponente: Guerrero)(criterio: EstadoResultado => tipos.RetornoCriterio): Option[Movimiento] = {
+  def movimientoMasEfectivoContra(oponente: Guerrero)(criterio: tipos.Criterio): Option[Movimiento] = {
     val estadoInicial: EstadoResultado = EstadoResultado(this, oponente)
     val filtrarMovimientosValidos: ((String, Movimiento)) => Boolean =
       movimiento => criterio(movimiento._2.ejecutar(estadoInicial)) > 0
@@ -141,12 +142,12 @@ case class Guerrero(nombre: String,
   }
 
   def contraAtacar(oponente:Guerrero): Option[EstadoResultado] = {
-    val criterioDeMasEnergia: EstadoResultado => tipos.RetornoCriterio = {case EstadoResultado(atacante, oponente) => atacante.energia / oponente.energia.toDouble.max(0.0001) }
+    val criterioDeMasEnergia: tipos.Criterio = {case EstadoResultado(atacante, oponente) => atacante.energia / oponente.energia.toDouble.max(0.0001) }
     movimientoMasEfectivoContra(oponente)(criterioDeMasEnergia).
       map(unMovimiento => unMovimiento.ejecutar(EstadoResultado(this, oponente)))
   }
 
-  def planDeAtaqueContra(oponente: Guerrero, cantTurnos: Int)(criterio: EstadoResultado => tipos.RetornoCriterio): Option[List[Movimiento]] = {
+  def planDeAtaqueContra(oponente: Guerrero, cantTurnos: Int)(criterio: tipos.Criterio): Option[List[Movimiento]] = {
     if(cantTurnos == 0) return Some(List[Movimiento]()) //Condicion de corte (y donde me canse de pensar)
 
     val movimientoMasEfectivo: Option[Movimiento] = this.movimientoMasEfectivoContra(oponente)(criterio)
@@ -249,7 +250,7 @@ case object SemillaDelHermitanio extends Item {
   override val accion: tipos.Accion = res => res.copy(estadoAtacante = res.estadoAtacante.restaurarPorSemilla)
 }
 case class Arma(nombre: String, tipoArma: TipoArma) extends Item {
-  override val accion: tipos.Accion = tipoArma.procesar(_)
+  override val accion: tipos.Accion = tipoArma.procesar _
 }
 case object FotoDeLuna extends Item {
   val nombre: String = "Foto de la luna"

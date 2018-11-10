@@ -1,4 +1,5 @@
 import org.scalatest.{FreeSpec, Matchers}
+import tipos.Criterio
 
 class ProjectSpec extends FreeSpec with Matchers {
 
@@ -568,13 +569,84 @@ class ProjectSpec extends FreeSpec with Matchers {
       }
     }
     "plan de ataque contra" - {
-      val trunks: Guerrero = Guerrero("Trunks", 10, 500, Humano,
-        Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (usarEspada.nombre, usarEspada), (dejarseFajar.nombre, dejarseFajar)),
-        Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio), (espada.nombre, espada)))
-      val yajirobe: Guerrero = Guerrero("Yajirobe", 1, 2, Humano,
-        Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (usarEspada.nombre, usarEspada), (dejarseFajar.nombre, dejarseFajar)),
-        Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio), (espada.nombre, espada)))
-      ""
+      "Trunks quiere pelear 2 turnos haciendo tanto daño como pueda" in {
+        val trunks: Guerrero = Guerrero("Trunks", 500, 500, Humano,
+          Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (kamehameha.nombre, kamehameha), (dejarseFajar.nombre, dejarseFajar)),
+          Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio)))
+        val goku: Guerrero = Guerrero("Goku", 500, 500, Saiyajin(false),
+          Map[String, Movimiento]((kamehameha.nombre, kamehameha), (cargarKi.nombre, cargarKi)))
+        val criterio: Criterio = {case EstadoResultado(_, estadoOponente) => 1 / estadoOponente.energia.toDouble.max(0.00001)}
+
+        /*
+        Secuencia:
+          Inicial -> (500, 500)
+          t:kamehameha -> (480, 460) -> g:cargarKi -> (480, 500)
+          t:kamehameha -> (460, 460) -> g:cargarKi -> (460, 500)
+         */
+
+        trunks.planDeAtaqueContra(goku, 2)(criterio) shouldBe Some(List[Movimiento](kamehameha, kamehameha))
+      }
+      "Trunks quiere pelear 2 turnos haciendo tanto daño como pueda teniendo su espada (goku con cola)" in {
+        val trunks: Guerrero = Guerrero("Trunks", 500, 500, Humano,
+          Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (usarEspada.nombre, usarEspada), (dejarseFajar.nombre, dejarseFajar)),
+          Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio), (espada.nombre, espada)))
+        val goku: Guerrero = Guerrero("Goku", 500, 500, Saiyajin(),
+          Map[String, Movimiento]((kamehameha.nombre, kamehameha), (cargarKi.nombre, cargarKi)))
+        val criterio: Criterio = {case EstadoResultado(_, estadoOponente) => 1 / estadoOponente.energia.toDouble.max(0.00001)}
+
+        /*
+        Secuencia:
+          Inicial -> (500, 500)
+          usarEspada -> (500, 1) -> cargarKi -> (500, 101)
+          usarEspada -> (500, 0) -> (Muerto) -> (500, 0)
+         */
+        trunks.planDeAtaqueContra(goku, 2)(criterio) shouldBe Some(List[Movimiento](usarEspada, usarEspada))
+      }
+      "Trunks quiere pelear 4 turnos haciendo tanto daño como pueda teniendo su espada (goku con cola)" in {
+        val trunks: Guerrero = Guerrero("Trunks", 500, 500, Humano,
+          Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (usarEspada.nombre, usarEspada), (dejarseFajar.nombre, dejarseFajar)),
+          Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio), (espada.nombre, espada)))
+        val goku: Guerrero = Guerrero("Goku", 500, 500, Saiyajin(),
+          Map[String, Movimiento]((kamehameha.nombre, kamehameha), (cargarKi.nombre, cargarKi)))
+        val criterio: Criterio = {case EstadoResultado(_, estadoOponente) => 1 / estadoOponente.energia.toDouble.max(0.00001)}
+
+        /*
+        Secuencia:
+          Inicial -> (500, 500)
+          usarEspada -> (500, 1) -> cargarKi -> (500, 101)
+          usarEspada -> (500, 0) -> (Muerto) -> (500, 0)
+         */
+        trunks.planDeAtaqueContra(goku, 4)(criterio) shouldBe None
+      }
+    }
+    "Pelear contra" - {
+      val goku: Guerrero = Guerrero("Goku", 500, 500, Saiyajin(),
+        Map[String, Movimiento]((kamehameha.nombre, kamehameha), (cargarKi.nombre, cargarKi)))
+      "Trunks vs Goku (No termina)" in {
+        val trunks: Guerrero = Guerrero("Trunks", 500, 500, Humano,
+          Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (kamehameha.nombre, kamehameha), (dejarseFajar.nombre, dejarseFajar)),
+          Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio)))
+        val planDeAtaque: List[Movimiento] = List(kamehameha, kamehameha)
+
+        trunks.pelearContra(goku)(planDeAtaque) shouldBe Peleando(trunks.copy(energia = 460), goku)
+      }
+      "Trunks vs Goku (Gana Trunks)" in {
+        val trunks: Guerrero = Guerrero("Trunks", 500, 500, Humano,
+          Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (usarEspada.nombre, usarEspada), (dejarseFajar.nombre, dejarseFajar)),
+          Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio), (espada.nombre, espada)))
+        val planDeAtaque: List[Movimiento] = List(usarEspada, usarEspada)
+
+        trunks.pelearContra(goku)(planDeAtaque) shouldBe Terminada(trunks)
+      }
+
+      "Trunks vs Goku (Gana Trunks y no sigue)" in {
+        val trunks: Guerrero = Guerrero("Trunks", 400, 500, Humano,
+          Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (usarEspada.nombre, usarEspada), (dejarseFajar.nombre, dejarseFajar)),
+          Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio), (espada.nombre, espada)))
+        val planDeAtaque: List[Movimiento] = List(usarEspada, usarEspada, usarSemillaHermitanio)
+
+        trunks.pelearContra(goku)(planDeAtaque) shouldBe Terminada(trunks)
+      }
     }
   }
 }
