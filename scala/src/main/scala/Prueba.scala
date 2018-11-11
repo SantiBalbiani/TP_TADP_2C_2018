@@ -1,10 +1,11 @@
-import tipos.{Accion, RetornoCriterio}
+import tipos.{Accion, FormaDeComer, RetornoCriterio}
 
 object tipos{
   type Accion = EstadoResultado => EstadoResultado
   type Efecto = Guerrero => Guerrero
   type RetornoCriterio = Double
   type Criterio = EstadoResultado => RetornoCriterio
+  type FormaDeComer = (Guerrero, Set[Movimiento]) => Set[Movimiento]
 }
 
 object efectos {
@@ -65,8 +66,8 @@ case class Guerrero(nombre: String,
                     energia : Int,
                     energiaMaxima : Int,
                     especie : Especie,
-                    movimientos : Map[String, Movimiento] = Map[String, Movimiento](),
-                    inventario : Map[String, Item] = Map[String, Item](),
+                    movimientos : Set[Movimiento] = Set[Movimiento](),
+                    inventario : Set[Item] = Set[Item](),
                     estado : Estado = Normal,
                     turnosSiendoFajado : Int = 0) {
   
@@ -114,10 +115,10 @@ case class Guerrero(nombre: String,
 
   def normalizar: Guerrero = hacerAlgo(g => g.copy(estado = Normal))
 
-  def actualizarMunicion(nombre:String, nuevaCantidad: Int): Guerrero = {
-    val arma: Option[Item] = inventario.get(nombre)
+  def actualizarMunicion(nombre: String, nuevaCantidad: Int): Guerrero = {
+    val arma: Option[Item] = inventario.find(nombre == _.nombre)
     if(!arma.isEmpty) arma.get match {
-      case Arma(nombre, DeFuego(_)) => copy(inventario = inventario - nombre).copy(inventario = inventario + (nombre -> Arma(nombre, DeFuego(nuevaCantidad))))
+      case armaOld @ Arma(_, DeFuego(_)) => copy(inventario = inventario - armaOld + Arma(nombre, DeFuego(nuevaCantidad)))
       case _ => this
     }
     else this
@@ -127,15 +128,15 @@ case class Guerrero(nombre: String,
     if(g.especie == Namekusein) g.reducirKi(danio.min(g.energia - 1))
     else g.reducirKi(danio))
 
-  def listarMovimientos: Map[String, Movimiento] = especie match {
-    case Monstruo(_, _, movimientosDevorados) => movimientos ++ movimientosDevorados
+  def listarMovimientos: Set[Movimiento] = especie match {
+    case Monstruo(_, _, movimientosDevorados) => movimientos | movimientosDevorados
     case _ => movimientos
   }
 
   def usarItem(item: String)(oponente:Guerrero): EstadoResultado = {
     if(estado != Muerto) {
       val resultadoBase = EstadoResultado(this, oponente)
-      inventario.get(item).map({
+      inventario.find(item == _.nombre).map({
           case i @ SemillaDelHermitanio => i.usar(resultadoBase)
           case _ if this.estado == Inconsciente => resultadoBase
           case Arma(_, DeFuego(municion)) if municion == 0 => resultadoBase
@@ -146,22 +147,22 @@ case class Guerrero(nombre: String,
     else EstadoResultado(this, oponente)
   }
 
-  def tieneItem(item: String): Boolean = inventario.contains(item)
+  def tieneItem(item: String): Boolean = inventario.exists(item == _.nombre)
 
-  def sabeMovimiento(movimiento: String): Boolean = listarMovimientos.contains(movimiento)
+  def sabeMovimiento(movimiento: String): Boolean = listarMovimientos.exists(movimiento == _.nombre)
 
   def movimientoMasEfectivoContra(oponente: Guerrero)(criterio: tipos.Criterio): Option[Movimiento] = {
     val estadoInicial: EstadoResultado = EstadoResultado(this, oponente)
-    val filtrarMovimientosValidos: ((String, Movimiento)) => Boolean =
-      movimiento => criterio(movimiento._2.ejecutar(estadoInicial)) > 0
-    val usarCriterio: ((String, Movimiento)) => tipos.RetornoCriterio =
-      movimiento => criterio(movimiento._2.ejecutar(estadoInicial))
-    val movimientosValidos = this.listarMovimientos.filter(filtrarMovimientosValidos)
+    val usarCriterio: Movimiento => tipos.RetornoCriterio =
+      movimiento => criterio(movimiento.ejecutar(estadoInicial))
+    val filtrarMovimientosValidos: Movimiento => Boolean =
+      usarCriterio(_) > 0
+    val movimientosValidos: Set[Movimiento] = this.listarMovimientos.filter(filtrarMovimientosValidos)
 
     if(movimientosValidos.isEmpty)
       None
     else
-     Some(movimientosValidos.maxBy[tipos.RetornoCriterio](usarCriterio)._2)
+     Some(movimientosValidos.maxBy[tipos.RetornoCriterio](usarCriterio))
   }
 
   def pelearRound(movimiento: Movimiento)(oponente: Guerrero): EstadoResultado = {
@@ -218,8 +219,8 @@ case class Saiyajin(tieneCola : Boolean = true,
 case object Androide extends Especie
 case object Namekusein extends Especie
 case class Monstruo(puedeDevorar: Guerrero => Boolean,
-                    formaDeComer : (Guerrero, Map[String, Movimiento]) => Map[String, Movimiento],
-                    movimientosDevorados : Map[String, Movimiento] = Map[String, Movimiento]()) extends Especie {
+                    formaDeComer : tipos.FormaDeComer,
+                    movimientosDevorados : Set[Movimiento] = Set[Movimiento]()) extends Especie {
 
   def devorar(self: Guerrero, oponente: Guerrero): EstadoResultado =
     if(puedeDevorar(oponente) && self.energia > oponente.energia)
@@ -234,8 +235,8 @@ case class Fusionado(original : Guerrero, amigo : Guerrero) extends Especie {
     original.energia + amigo.energia,
     original.energiaMaxima + amigo.energiaMaxima,
     this,
-    original.movimientos ++ amigo.movimientos,
-    original.inventario ++ amigo.inventario
+    original.movimientos | amigo.movimientos,
+    original.inventario | amigo.inventario
     )
 }
 
@@ -290,8 +291,8 @@ case class Fusion(amigo: Guerrero) extends Movimiento {
 case class Magia(nombre: String, hechizo: tipos.Accion) extends Movimiento {
   val accion: tipos.Accion = res => res.estadoAtacante match {
     case EspecieConMagia(_) => hechizo(res)
-    case atacante if EspecieConMagia.tieneSieteEsferas(atacante) => hechizo(EstadoResultado(atacante.copy(inventario = atacante.inventario - "Esferas del dragon (7)"
-), res.estadoOponente))
+    case atacante if EspecieConMagia.tieneSieteEsferas(atacante) =>
+      hechizo(EstadoResultado(atacante.copy(inventario = atacante.inventario - EsferasDelDragon(7)), res.estadoOponente))
     case _ => res
   }
 }
