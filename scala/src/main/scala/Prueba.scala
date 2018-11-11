@@ -2,8 +2,53 @@ import tipos.{Accion, RetornoCriterio}
 
 object tipos{
   type Accion = EstadoResultado => EstadoResultado
+  type Efecto = Guerrero => Guerrero
   type RetornoCriterio = Double
   type Criterio = EstadoResultado => RetornoCriterio
+}
+
+object efectos {
+  import tipos.Efecto
+
+  val cargarKi: Efecto = g => g.especie match {
+    case Androide => g
+    case Saiyajin(_, SuperSaiyajin(_, nivel)) => g.incrementarKi(150 * nivel)
+    case _ => g.incrementarKi(100)
+  }
+
+  val restaurarse: Efecto = g => g.copy(energia = g.energiaMaxima, estado = Normal)
+
+  val restaurarsePorSemilla: Efecto = g => g.estado match {
+    case Muerto => g
+    case _ => restaurarse(g)
+  }
+
+  val cortarCola: Efecto = guerrero => guerrero.especie match {
+    case Saiyajin(true, Mono) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, SaiyajinNormal)).quedarInconsciente
+    case Saiyajin(true, otro) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, otro))
+    case _ => guerrero
+  }
+
+  val transformarEnMono: Efecto = guerrero => guerrero.especie match {
+    case Saiyajin(true, estado) if guerrero.tieneItem(FotoDeLuna.nombre) && estado != Mono =>{
+      val sinSS = dejarDeSerSuperSaiyajin(guerrero)
+      sinSS.incrementarMaximo(sinSS.energiaMaxima * 2).hacerAlgo(restaurarse(_).copy(especie = Saiyajin(true, Mono)))
+    }
+    case _ => guerrero
+  }
+
+  val convertiseEnSuperSaiyajin: Efecto = g => g.especie match {
+    case Saiyajin(tieneCola, SaiyajinNormal) if g.energia > g.energiaMaxima / 2 =>
+      g.hacerAlgo(g=> g.copy(especie = Saiyajin(tieneCola, SuperSaiyajin(g.energiaMaxima)))).incrementarMaximo(g.energiaMaxima * 4)
+    case Saiyajin(tieneCola, SuperSaiyajin(energiaOriginal, nivel)) if g.energia > g.energiaMaxima / 2 =>
+      g.hacerAlgo(g=> g.copy(especie = Saiyajin(tieneCola, SuperSaiyajin(energiaOriginal, nivel + 1)))).incrementarMaximo(energiaOriginal * 5)
+    case _ => g
+  }
+
+  val dejarDeSerSuperSaiyajin: Efecto = guerrero => guerrero.especie match {
+    case Saiyajin(tieneCola, SuperSaiyajin(energiaOriginal, _)) => guerrero.reducirMaximo(guerrero.energiaMaxima - energiaOriginal).hacerAlgo(_.copy(especie = Saiyajin(tieneCola, SaiyajinNormal)))
+    case _ => guerrero
+  }
 }
 
 object EspecieConMagia {
@@ -41,21 +86,6 @@ case class Guerrero(nombre: String,
     case _ => this
   }
 
-  def cargarKi: Guerrero = hacerAlgo(_.especie match {
-    case Androide => this
-    case Saiyajin(_, SuperSaiyajin(_, nivel)) => this.copy(energia = (energia + 150 * nivel) min energiaMaxima)
-    case _ => this.copy(energia = (energia + 100) min energiaMaxima)
-  })
-
-  val restauracion: Guerrero => Guerrero = _.copy(energia = energiaMaxima, estado = Normal)
-
-  def restaurar: Guerrero = hacerAlgo(restauracion)
-
-  def restaurarPorSemilla: Guerrero = estado match {
-    case Muerto => this
-    case _ => restauracion(this)
-  }
-
   def reducirKi(cantidad: Int): Guerrero =
     if(energia - cantidad <= 0) copy(energia = 0, estado = Muerto)
     else copy(energia = energia - cantidad)
@@ -78,7 +108,7 @@ case class Guerrero(nombre: String,
 
   def quedarInconsciente: Guerrero = hacerAlgo(g => (g.especie match {
     case Fusionado(original, _) => original
-    case saiyajin @ Saiyajin(_, _) => saiyajin.dejarDeSerSuperSaiyajin(g)
+    case Saiyajin(_, _) => efectos.dejarDeSerSuperSaiyajin(g)
     case _ => this
   }).copy(estado = Inconsciente))
 
@@ -184,33 +214,6 @@ case class Saiyajin(tieneCola : Boolean = true,
                     estado: EstadoSaiyajin = SaiyajinNormal) extends Especie{
 
   require(estado != Mono || tieneCola, "Un saiyajin no puede ser mono sin tener cola")
-
-  def cortarCola(guerrero: Guerrero): Guerrero = guerrero.especie match {
-    case Saiyajin(true, Mono) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, SaiyajinNormal)).quedarInconsciente
-    case Saiyajin(true, otro) => guerrero.reducirKi(guerrero.energia - 1).copy(especie = Saiyajin(false, otro))
-    case _ => guerrero
-  }
-
-  def transformarEnMono(guerrero: Guerrero): Guerrero = guerrero.especie match {
-    case Saiyajin(true, estado) if guerrero.tieneItem(FotoDeLuna.nombre) && estado != Mono =>{
-      val sinSS = this.dejarDeSerSuperSaiyajin(guerrero)
-      sinSS.incrementarMaximo(sinSS.energiaMaxima * 2).restaurar.hacerAlgo(_.copy(especie = Saiyajin(true, Mono)))
-    }
-    case _ => guerrero
-  }
-
-  def convertiseEnSuperSaiyajin(self: Guerrero): Guerrero = self.especie match {
-    case Saiyajin(tieneCola, SaiyajinNormal) if self.energia > self.energiaMaxima / 2 =>
-      self.hacerAlgo(g=> g.copy(especie = Saiyajin(tieneCola, SuperSaiyajin(g.energiaMaxima)))).incrementarMaximo(self.energiaMaxima * 4)
-    case Saiyajin(tieneCola, SuperSaiyajin(energiaOriginal, nivel)) if self.energia > self.energiaMaxima / 2 =>
-      self.hacerAlgo(g=> g.copy(especie = Saiyajin(tieneCola, SuperSaiyajin(energiaOriginal, nivel + 1)))).incrementarMaximo(energiaOriginal * 5)
-    case _ => self
-  }
-
-  def dejarDeSerSuperSaiyajin(guerrero: Guerrero): Guerrero = guerrero.especie match {
-    case Saiyajin(tieneCola, SuperSaiyajin(energiaOriginal, _)) => guerrero.reducirMaximo(guerrero.energiaMaxima - energiaOriginal).hacerAlgo(_.copy(especie = Saiyajin(tieneCola, SaiyajinNormal)))
-    case _ => guerrero
-  }
 }
 case object Androide extends Especie
 case object Namekusein extends Especie
@@ -247,10 +250,10 @@ case class ItemBasico(nombre: String, override val accion: tipos.Accion = res =>
 
 case object SemillaDelHermitanio extends Item {
   val nombre: String = "Semilla del hermitaño"
-  override val accion: tipos.Accion = res => res.copy(estadoAtacante = res.estadoAtacante.restaurarPorSemilla)
+  override val accion: tipos.Accion = res => res.copy(estadoAtacante = efectos.restaurarsePorSemilla(res.estadoAtacante))
 }
 case class Arma(nombre: String, tipoArma: TipoArma) extends Item {
-  override val accion: tipos.Accion = tipoArma.procesar _
+  override val accion: tipos.Accion = tipoArma.procesar
 }
 case object FotoDeLuna extends Item {
   val nombre: String = "Foto de la luna"
@@ -358,7 +361,7 @@ sealed trait TipoArma {
 case object Filosa extends TipoArma {
   override def procesar(res: EstadoResultado): EstadoResultado = {
     res.estadoOponente.especie match {
-      case saiyajin @ Saiyajin(true, _) => EstadoResultado(res.estadoAtacante, saiyajin.cortarCola(res.estadoOponente))
+      case Saiyajin(true, _) => EstadoResultado(res.estadoAtacante, efectos.cortarCola(res.estadoOponente))
       case _ => EstadoResultado(res.estadoAtacante, res.estadoOponente.reducirKi(res.estadoAtacante.energia * 100))
     }
   }

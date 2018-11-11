@@ -6,7 +6,7 @@ class ProjectSpec extends FreeSpec with Matchers {
   "Dragon Ball" - {
     val dejarseFajar: Movimiento = MovimientoSimple("Dejarse fajar", res => EstadoResultado(res.estadoAtacante.dejarseFajar, res.estadoOponente))
 
-    val cargarKi: Movimiento = MovimientoSimple("Cargar ki", { res => res.copy(estadoAtacante = res.estadoAtacante.cargarKi)})
+    val cargarKi: Movimiento = MovimientoSimple("Cargar ki", { res => res.copy(estadoAtacante = res.estadoAtacante.hacerAlgo(efectos.cargarKi))})
 
     val usarSemillaHermitanio: Movimiento = UsarItem(SemillaDelHermitanio)
 
@@ -15,15 +15,9 @@ class ProjectSpec extends FreeSpec with Matchers {
       case _ => res
     })
 
-    val convertirseEnMono: Movimiento = MovimientoSimple("Convertirse en mono",  res => res.estadoAtacante.especie match {
-      case saiyajin @ Saiyajin(_, _) => EstadoResultado(saiyajin.transformarEnMono(res.estadoAtacante), res.estadoOponente)
-      case _ => res
-    })
+    val convertirseEnMono: Movimiento = MovimientoSimple("Convertirse en mono",  res => EstadoResultado(efectos.transformarEnMono(res.estadoAtacante), res.estadoOponente))
 
-    val transformarseEnSS: Movimiento = MovimientoSimple("Transformase en super saiyajin", res => res.estadoAtacante.especie match {
-      case saiyajin @Saiyajin(_, _) => EstadoResultado(saiyajin.convertiseEnSuperSaiyajin(res.estadoAtacante), res.estadoOponente)
-      case _ => res
-    })
+    val transformarseEnSS: Movimiento = MovimientoSimple("Transformase en super saiyajin", res => EstadoResultado(efectos.convertiseEnSuperSaiyajin(res.estadoAtacante), res.estadoOponente))
 
     val MGN: Movimiento = AtaqueFisico("Muchos golpes ninja",  res =>
       (res.estadoAtacante.especie, res.estadoOponente.especie) match {
@@ -646,6 +640,20 @@ class ProjectSpec extends FreeSpec with Matchers {
         val planDeAtaque: List[Movimiento] = List(usarEspada, usarEspada, usarSemillaHermitanio)
 
         trunks.pelearContra(goku)(planDeAtaque) shouldBe Terminada(trunks)
+      }
+      "Trunks vs Goku (Gana Goku y no sigue)" in {
+        val trunks: Guerrero = Guerrero("Trunks", 1, 500, Humano,
+          Map[String, Movimiento]((usarSemillaHermitanio.nombre, usarSemillaHermitanio), (usarEspada.nombre, usarEspada), (dejarseFajar.nombre, dejarseFajar)),
+          Map[String, Item]((SemillaDelHermitanio.nombre, SemillaDelHermitanio), (espada.nombre, espada)))
+        val planDeAtaque: List[Movimiento] = List(dejarseFajar, usarSemillaHermitanio)
+
+        trunks.pelearContra(goku)(planDeAtaque) shouldBe Terminada(goku.copy(energia = 480))
+      }
+      "Cell vs Goku (Kaboom)" in {
+        val cell: Guerrero = Guerrero("Cell", 500, 500, Monstruo({g => false}, {_.movimientos ++ _}), Map[String, Movimiento]((explotar.nombre, explotar)))
+        val planDeAtaque: List[Movimiento] = List(explotar)
+
+        cell.pelearContra(cell)(planDeAtaque) shouldBe Terminada(cell.copy(energia = 0, estado = Muerto))
       }
     }
   }
