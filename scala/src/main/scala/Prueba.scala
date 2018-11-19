@@ -1,65 +1,158 @@
+import tipos._
+
+import scala.language.postfixOps
 
 
+object tipos{
+  type Criterio = Function2[Guerrero, Guerrero, Int]
+  type MovimientoEfecto = Function2[Guerrero, Guerrero, (Guerrero, Guerrero)]
+  type MovimientoEfectoConItem = Function3[Guerrero, Guerrero, Item, (Guerrero, Guerrero)]
+  type MovimientosCalificados = List[(Int,Movimiento)]
+  type PlanDeAtaque = Option[List[Movimiento]]
+  type FormaDeDigerir = Function1[Guerrero, Guerrero]
+  // Criterio establecido para el Requerimiento #2
+  val mayorPuntosDeKi: Criterio = (g1: Guerrero, g2:Guerrero) => g2.ki
+  val prioridadAtaque: Criterio = (g1: Guerrero, g2:Guerrero) => (g1.ki - g2.ki).abs
 
-case class Movimiento(nombre:String, 
-                      condicion: Guerrero => Boolean, //Evaluamos si el guerrero va a poder hacer el movimiento
-                      efectoUsuario: Guerrero => Guerrero,
-                      efectoOponente: Guerrero => Guerrero)
-
-object Movimientos {
-  val dejarseFajar : Movimiento = Movimiento("dejarse fajar", (_) => true, ???, ???)
-  val cargarKi: Movimiento = Movimiento("cargarKi", (_)=> true, ???, ???)
-  val usarItem: Movimiento = Movimiento("usarItem", (_)=> true, ???, ???)
-  val comerseAlOponente: Movimiento = Movimiento("usarItem", (_)=> true, ???, ???)
-  val atacar: Movimiento = Movimiento("atacar", (_)=> true, ???, ???)
-  //...and so on
 }
 
-case class Ataque(unAtacante: Guerrero, unAtacado: Guerrero)
+object movimientosBasicos{
 
-object Ataques {
-  val muchosGolpesNinja: Movimiento = ???
+  val dejarseFajar: Movimiento = Movimiento("dejarseFajar", (g1:Guerrero, g2:Guerrero) => (g1.copy(), g2.copy()) )
+
+  val cargarKi: Movimiento = Movimiento("cargarKi",(g1:Guerrero, g2:Guerrero) =>
+    g1.tipo match {
+      case Androide(_) => (g1.copy(), g2.copy())
+      case Sayajin(ssjLvl,_,_) if ssjLvl > 0 => (g1.copy(ki = g1.ki + 150*ssjLvl),g2.copy())
+      case _ => (g1.copy(ki = g1.ki + 100), g2.copy())
+    }
+  )
+
+
+  val usarItem: MovimientoConItem = MovimientoConItem("usarItem",ejecutarMov = (g1: Guerrero, g2: Guerrero, item: Item) =>
+    if (g1.tieneElItem(item)) item match {
+      case Arma(Roma) if !g2.tipo.equals(Androide) => (g1.copy(), g2.copy(estado = Inconsciente))
+      case Arma(Filosa) =>
+
+        g2 match {
+          case Guerrero(_, _, _, _, Sayajin(lvl, true, true), _, _) => (g1.copy(), g2.copy(ki = 1, tipo = Sayajin(lvl, false, false), estado = Inconsciente))
+          case Guerrero(_, _, _, _, Sayajin(lvl, true, false), _, _) => (g1.copy(), g2.copy(ki = 1, tipo = Sayajin(lvl, false, false)))
+          case _ => (g1.copy(), g2.copy(ki = g2.ki - (g1.ki / 100)))
+        }
+      case Arma(Fuego(muni)) if muni > 0 =>
+        g2 match {
+          case Guerrero(_, _, _, _, Humano, _, _) => (g1.copy(), g2.copy(ki = g2.ki - 20)) // Actualizar muni en g1
+          case Guerrero(_, _, _, _, Namekusein, _, Inconsciente) => (g1.copy(), g2.copy(ki = g2.ki - 10)) //Igual q arriba
+          case _ => (g1.copy(), g2.copy())
+        }
+      case SemillaHermitanio => (g1.copy(ki = g1.kiMax), g2.copy())
+
+      case _ => (g1.copy(), g2.copy())
+    } else {
+      (g1.copy(), g2.copy())
+    })
+
+  val comerseOponente: Movimiento = Movimiento("comerseOponente", ejecutarMov = (g1: Guerrero, g2: Guerrero) =>
+    g1 match {
+      case Guerrero(_, _, _, _, Monstruo(_, formaDeDigerir), _, _) => (formaDeDigerir(g2), g2.copy(estado = Muerto))
+      case _ => (g1.copy(), g2.copy())
+    })
+
+
+
 }
 
-case class Item(nombre: String, guerrero: Guerrero){
- 
-}
+
+trait Estado
+
+case object Normal extends Estado
+case object Inconsciente extends Estado
+case object Muerto extends Estado
 
 
 
-                    
-  case class Guerrero(nombre: String, 
-                    ki: Int, 
-                    inventario: Seq[Item],
-                    especie : Especie, 
-                    movimientos: Set[Movimiento]
-                    ) {
-    def tieneItem(unItem:Item) {
-    var result = true
+case class Movimiento(nombre:String, ejecutarMov: MovimientoEfecto) extends Movimientos
+
+case class MovimientoConItem(nombre:String, ejecutarMov: MovimientoEfectoConItem)  extends Movimientos
+
+
+trait Movimientos
+trait Especie
+trait Item
+trait TipoArma
+
+case object Roma extends TipoArma
+case object Filosa extends TipoArma
+case class Fuego(municion: Int) extends TipoArma
+
+case object SemillaHermitanio extends Item
+case class Arma(tipo: TipoArma) extends Item
+
+
+case object Humano extends Especie
+case object Namekusein extends Especie
+case class Androide(battery:Int) extends Especie
+case class Monstruo(habilidadesAdquiridas: List[Movimiento], formaDeDigerir: FormaDeDigerir) extends Especie
+case class Sayajin(ssjLvl:Int, tieneCola: Boolean, esMono: Boolean) extends Especie
+
+
+
+
+case class Guerrero(nombre: String, ki: Int, kiMax: Int, movs: List[Movimiento], tipo: Especie, inventario: List[Item], estado: Estado){
+
+  def tieneElItem(unItem: Item): Boolean = {
+
+    this.inventario.contains(unItem)
+
   }
-    
-  }            
-                    
-  
-  
+
+  def movimientoMasEfectivoContra(unGuerrero:Guerrero)(unCriterio: Criterio): Movimiento = {
+
+    val movsCalif: MovimientosCalificados =
+      movs.map{unMov => ( unCriterio(unMov.ejecutarMov(this, unGuerrero)_1,unMov.ejecutarMov(this, unGuerrero)_2)  ,unMov) }
+    movsCalif.maxBy(_._1)._2
+
+  }
 
 
-trait Especie {
-  //Para poder escribir un patron facilmente que diga que especie es
-  def unapply(guerrero:Guerrero) : Option[Guerrero] = if(guerrero.especie == this) Some(guerrero) else None
-  
-}
 
-case class Humano() extends Especie
-case class Sayajin(tieneCola:Boolean) extends Especie
-case class Androide() extends Especie
-case class Namekusein() extends Especie
-case class Monstruo(movimientosDigeridos: Set[Movimiento]) extends Especie
-case class Fusionado(original:Guerrero, amigo:Guerrero) extends Especie
+  def pelearRound(mov: Movimiento)(unOponente:Guerrero): (Guerrero, Guerrero) = {
+
+    val despuesDe1erMov: (Guerrero, Guerrero) = mov.ejecutarMov(this, unOponente)
+
+    val movOponente: Movimiento = despuesDe1erMov._2.movimientoMasEfectivoContra(this)(prioridadAtaque)
+
+    val resultRound: (Guerrero, Guerrero) = movOponente.ejecutarMov(despuesDe1erMov._2.copy(), this.copy())
+
+    (resultRound._2, resultRound._1)
+
+  }
 
 
-object TesteoLoco extends App {
-  
 
-  
+
+  def planDeAtaqueContra(unOponente: Guerrero, cantRounds: Int)(unCriterio: Criterio): PlanDeAtaque = {
+
+    // val rounds: List[Int] =  List.range(1, cantRounds)
+
+    var movimientos: Option[List[Movimiento]] = Some(List(movimientoMasEfectivoContra(unOponente)(unCriterio)))
+
+    var mov: Movimiento = movimientoMasEfectivoContra(unOponente)(unCriterio)
+
+    var estadoP: (Guerrero, Guerrero) = pelearRound(mov)(unOponente)
+
+
+    if (cantRounds >= 0){
+      movimientos = planDeAtaqueContra(estadoP._2, cantRounds-1)(unCriterio).map(movim => List[Movimiento](mov) ++ movim)
+    }
+
+    movimientos
+
+
+    // var movMasEf: Movimiento = movimientoMasEfectivoContra(unOponente)(unCriterio)
+
+    //var peleaResult: (Guerrero, Guerrero) = pelearRound(movMasEf)(unOponente)
+
+  }
+
 }
