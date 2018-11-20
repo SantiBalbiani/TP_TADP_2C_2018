@@ -6,7 +6,7 @@ import scala.language.postfixOps
 object tipos{
   type Criterio = Function2[Guerrero, Guerrero, Int]
   type MovimientoEfecto = Function2[Guerrero, Guerrero, (Guerrero, Guerrero)]
-  type MovimientoEfectoConItem = Function3[Guerrero, Guerrero, Item, (Guerrero, Guerrero)]
+  //type MovimientoEfectoConItem = Function3[Guerrero, Guerrero, Item, (Guerrero, Guerrero)]
   type MovimientosCalificados = List[(Int,Movimiento)]
   type PlanDeAtaque = Option[List[Movimiento]]
   type FormaDeDigerir = Function1[Guerrero, Guerrero]
@@ -29,8 +29,8 @@ object movimientosBasicos{
   )
 
 
-  val usarItem: MovimientoConItem = MovimientoConItem("usarItem",ejecutarMov = (g1: Guerrero, g2: Guerrero, item: Item) =>
-    if (g1.tieneElItem(item)) item match {
+  def usarItem(unItem:Item): Movimiento = Movimiento("usarItem", (g1: Guerrero, g2: Guerrero) =>
+    if (g1.tieneElItem(unItem)){ unItem match {
       case Arma(Roma) if !g2.tipo.equals(Androide) => (g1.copy(), g2.copy(estado = Inconsciente))
       case Arma(Filosa) =>
 
@@ -48,7 +48,7 @@ object movimientosBasicos{
       case SemillaHermitanio => (g1.copy(ki = g1.kiMax), g2.copy())
 
       case _ => (g1.copy(), g2.copy())
-    } else {
+    }} else {
       (g1.copy(), g2.copy())
     })
 
@@ -71,12 +71,9 @@ case object Muerto extends Estado
 
 
 
-case class Movimiento(nombre:String, ejecutarMov: MovimientoEfecto) extends Movimientos
-
-case class MovimientoConItem(nombre:String, ejecutarMov: MovimientoEfectoConItem)  extends Movimientos
+case class Movimiento(nombre:String, ejecutarMov: MovimientoEfecto)
 
 
-trait Movimientos
 trait Especie
 trait Item
 trait TipoArma
@@ -122,37 +119,35 @@ case class Guerrero(nombre: String, ki: Int, kiMax: Int, movs: List[Movimiento],
 
     val movOponente: Movimiento = despuesDe1erMov._2.movimientoMasEfectivoContra(this)(prioridadAtaque)
 
-    val resultRound: (Guerrero, Guerrero) = movOponente.ejecutarMov(despuesDe1erMov._2.copy(), this.copy())
+    val resultRound: (Guerrero, Guerrero) = movOponente.ejecutarMov(despuesDe1erMov._2.copy(), despuesDe1erMov._1.copy())
 
     (resultRound._2, resultRound._1)
 
   }
 
 
+  def estaMuerto: Boolean = {
 
-
-  def planDeAtaqueContra(unOponente: Guerrero, cantRounds: Int)(unCriterio: Criterio): PlanDeAtaque = {
-
-    // val rounds: List[Int] =  List.range(1, cantRounds)
-
-    var movimientos: Option[List[Movimiento]] = Some(List(movimientoMasEfectivoContra(unOponente)(unCriterio)))
-
-    var mov: Movimiento = movimientoMasEfectivoContra(unOponente)(unCriterio)
-
-    var estadoP: (Guerrero, Guerrero) = pelearRound(mov)(unOponente)
-
-
-    if (cantRounds >= 0){
-      movimientos = planDeAtaqueContra(estadoP._2, cantRounds-1)(unCriterio).map(movim => List[Movimiento](mov) ++ movim)
+    estado match{
+      case Muerto => true
+      case _ => false
     }
 
+  }
+  // val rounds: List[Int] =  List.range(1, cantRounds)
+  def planDeAtaqueContra(unOponente: Guerrero, cantRounds: Int)(unCriterio: Criterio): PlanDeAtaque = {
+    var movimientos: Option[List[Movimiento]] = Some(List(movimientoMasEfectivoContra(unOponente)(unCriterio)))
+    val mov: Movimiento = movimientoMasEfectivoContra(unOponente)(unCriterio)
+    val estadoP: (Guerrero, Guerrero) = pelearRound(mov)(unOponente)
+    if (estadoP._1.estaMuerto) return None
+    if (estadoP._2.estaMuerto) return movimientos
+    if (cantRounds >= 0)
+      movimientos = planDeAtaqueContra(estadoP._2, cantRounds - 1)(unCriterio).map(movim => List[Movimiento](mov) ++ movim)
     movimientos
-
+  }
 
     // var movMasEf: Movimiento = movimientoMasEfectivoContra(unOponente)(unCriterio)
 
     //var peleaResult: (Guerrero, Guerrero) = pelearRound(movMasEf)(unOponente)
-
-  }
 
 }
