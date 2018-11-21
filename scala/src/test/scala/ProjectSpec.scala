@@ -1,5 +1,6 @@
 import org.scalatest.{FreeSpec, Matchers}
-import tipos._
+import Modelo._
+import MovimientosBasicos._
 
 class ProjectSpec extends FreeSpec with Matchers {
 
@@ -7,35 +8,13 @@ class ProjectSpec extends FreeSpec with Matchers {
     val ataque1: Movimiento = Movimiento("GolpeSuave", (g1: Guerrero, g2: Guerrero) => (g1.copy(), g2.copy(ki = g2.ki - 10)))
     val ataque2: Movimiento = Movimiento("GolpeMedio", (g1: Guerrero, g2: Guerrero) => (g1.copy(), g2.copy(ki = g2.ki - 20)))
     val ataque3: Movimiento = Movimiento("GolpeFuerte", (g1: Guerrero, g2: Guerrero) =>
-      (g2.tipo match {
+      g2.tipo match {
         case Humano => (g1.copy(), g2.copy(ki = g2.ki - 60))
         case Sayajin(_, _, _) => (g1.copy(), g2.copy(ki = g2.ki - 20))
         case _ => (g1.copy(), g2.copy(ki = g2.ki - 30))
-      })
+      }
     )
 
-    def usarItem(unItem:Item): Movimiento = Movimiento("usarItem", (g1: Guerrero, g2: Guerrero) =>
-      if (g1.tieneElItem(unItem)){ unItem match {
-        case Arma(Roma) if !g2.tipo.equals(Androide) => (g1.copy(), g2.copy(estado = Inconsciente))
-        case Arma(Filosa) =>
-
-          g2 match {
-            case Guerrero(_, _, _, _, Sayajin(lvl, true, true), _, _) => (g1.copy(), g2.copy(ki = 1, tipo = Sayajin(lvl, false, false), estado = Inconsciente))
-            case Guerrero(_, _, _, _, Sayajin(lvl, true, false), _, _) => (g1.copy(), g2.copy(ki = 1, tipo = Sayajin(lvl, false, false)))
-            case _ => (g1.copy(), g2.copy(ki = g2.ki - (g1.ki / 100)))
-          }
-        case Arma(Fuego(muni)) if muni > 0 =>
-          g2 match {
-            case Guerrero(_, _, _, _, Humano, _, _) => (g1.copy(), g2.copy(ki = g2.ki - 20)) // Actualizar muni en g1
-            case Guerrero(_, _, _, _, Namekusein, _, Inconsciente) => (g1.copy(), g2.copy(ki = g2.ki - 10)) //Igual q arriba
-            case _ => (g1.copy(), g2.copy())
-          }
-        case SemillaHermitanio => (g1.copy(ki = g1.kiMax), g2.copy())
-
-        case _ => (g1.copy(), g2.copy())
-      }} else {
-        (g1.copy(), g2.copy())
-      })
 
     "vegetaTieneUnaSemillaDelErmitanio" in {
 
@@ -82,6 +61,16 @@ class ProjectSpec extends FreeSpec with Matchers {
       superVegeta._1.ki shouldEqual 1190
 
     }
+/*
+    "probando Plan de Ataque" in {
 
+      var krilin = Guerrero("krilin", 100, 12, List(ataque1, ataque3, usarItem(SemillaHermitanio)), Humano, List(SemillaHermitanio), Normal)
+      var vegeta = Guerrero("vegeta", 100, 12, List(ataque1, ataque2, ataque3), Sayajin(12, false, false), List(SemillaHermitanio), Normal)
+      var h = krilin.planDeAtaqueContra(vegeta, 10)(prioridadAtaque)
+
+      h.size shouldEqual 10
+
+    }
+    */
   }
 }
