@@ -122,10 +122,14 @@ object Modelo {
     def planDeAtaqueContra(unOponente: Guerrero, cantRounds: Int)(unCriterio: Criterio): PlanDeAtaque = {
       // TODO se te va a complicar más pensar algo recursivo y a su vez mutable
       // var movimientos: Option[List[Movimiento]] = Some(List(movimientoMasEfectivoContra(unOponente)(unCriterio)))
-
-      val mov: Movimiento = movimientoMasEfectivoContra(unOponente)(unCriterio)
+      
+      // Esto devuelve un Option (Santi)
+      // Englobar todo con un match que devuelva None si el primer mov determinado es None (Santi)
+      val mov: Movimiento = movimientoMasEfectivoContra(unOponente)(unCriterio) 
+      // val mov: Option[Movimiento] = movimientoMasEfectivoContra(unOponente)(unCriterio) // (Santi)
+      // if mov is Some // (Santi)
       val estadoP: (Guerrero, Guerrero) = pelearRound(mov)(unOponente)
-      // TODO evitá hacer return, preferí usar "else"
+      // TODO evitá hacer return, preferí usar "else" 
       if (estadoP._1.estaMuerto) {
         None
       } else if (estadoP._2.estaMuerto) {
