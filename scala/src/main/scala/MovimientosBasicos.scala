@@ -39,7 +39,7 @@ object MovimientosBasicos {
 
   val comerOponente: Movimiento = Movimiento("comerOponente", (g1:Guerrero, g2:Guerrero) =>
     g1.tipo match{
-      case Monstruo(_,formaDeDigerir) => (formaDeDigerir(g1,g2.movs), g2.copy(estado = Muerto))
+      case Monstruo(_,formaDeDigerir) => (formaDeDigerir(g1,g2.movs), actualizarEstado(g2.copy(estado = Muerto, ki = 0)))
       // TODO: no es necesario el copy vacío, esa es la gran ventaja de que sean inmutables ;)
       case _ => (g1.copy(), g2.copy())
     }
@@ -77,18 +77,18 @@ object MovimientosBasicos {
   })
 
   def onda(energia:Int): Movimiento = Movimiento("OndaEnergia", (g1:Guerrero, g2: Guerrero) =>
-    (g1.tipo, g2.tipo) match{
+    if (puedeUsarMov(g1)) {(g1.tipo, g2.tipo) match{
       case (Androide(bata), Monstruo(_,_)) =>
-        (g1.copy(tipo = Androide(bata-energia)),g2.copy(ki = g2.ki-(energia*2)))
-      case (_,Monstruo(_,_)) =>  ((g1.copy(), actualizarEstado(g2.copy(ki = g2.ki-(energia/2)))))
+        (actualizarEstado(g1.copy(tipo = Androide(bata-energia))),actualizarEstado(g2.copy(ki = g2.ki-(energia*2))))
+      case (_,Monstruo(_,_)) =>  (actualizarEstado(g1.copy(ki = g1.ki-energia)), actualizarEstado(g2.copy(ki = g2.ki-(energia/2))))
 
       case (Androide(batt),_) =>
-        (g1.copy(tipo = Androide(batt-energia)),g2.copy(ki = g2.ki-(energia*2)))
+        (actualizarEstado(g1.copy(tipo = Androide(batt-energia))),actualizarEstado(g2.copy(ki = g2.ki-(energia*2))))
       case (_,_) if g1.ki > energia =>
-        (g1.copy(ki = g1.ki-energia),g2.copy(ki = g2.ki-(energia*2)))
+        (actualizarEstado(g1.copy(ki = g1.ki-energia)),actualizarEstado(g2.copy(ki = g2.ki-(energia*2))))
       case (_,_) =>
         (g1.copy(), g2.copy())
-    }
+    }}else (g1.copy(), g2.copy())
   )
 
   // Criterio establecido para el Requerimiento #2
@@ -97,6 +97,14 @@ object MovimientosBasicos {
   val prioridadAtaque: Criterio = (g1: Guerrero, g2: Guerrero) => (g1.ki - g2.ki).abs
 
   val actualizarEstado: Guerrero => Guerrero = (g1:Guerrero) =>
-    if (g1.ki <= 0) {g1.copy(estado = Muerto)} else if (g1.ki > g1.kiMax){g1.copy(ki = g1.kiMax)} else {g1.copy()}
+
+    g1.tipo match{
+
+      case Androide(battery) => if (battery <= 0) {g1.copy(estado = Muerto, tipo = Androide(0))} else {g1.copy()}
+      case _ =>  if (g1.ki <= 0) {g1.copy(estado = Muerto, ki = 0)} else if (g1.ki > g1.kiMax){g1.copy(ki = g1.kiMax)} else {g1.copy()}
+
+    }
+
+  val puedeUsarMov: Guerrero => Boolean = (g1:Guerrero) => if(g1.ki > 0){true } else{ false}
 
 }

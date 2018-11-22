@@ -21,10 +21,10 @@ class ProjectSpec extends FreeSpec with Matchers {
     val todosLosAtaques: List[Movimiento] = List(comerSemillaDelErmitanio,usarEspada, golpearConMaza, macenko, kamehameHa, disparar  )
 
     val vegeta = Guerrero("vegeta", 1000, 1200, todosLosAtaques, Sayajin(1, false, false), List(SemillaHermitanio), Normal)
-    val nro18 = Guerrero("krilin", 100, 1200, todosLosAtaques, Androide(1000), List(SemillaHermitanio), Normal)
+    val nro18 = Guerrero("nro18", 100, 1200, todosLosAtaques, Androide(1000), List(SemillaHermitanio), Normal)
     val kiabe = Guerrero("kiabe", 500, 1600, List(kamehameHa,convertirseEnSSJ), Sayajin(0, false, false), List(SemillaHermitanio), Normal)
 
-    var krilin = Guerrero("krilin", 100, 12, List(kamehameHa), Humano, List(SemillaHermitanio), Normal)
+    var krilin = Guerrero("krilin", 100, 1200, List(kamehameHa), Humano, List(SemillaHermitanio), Normal)
 
     "vegetaTieneUnaSemillaDelErmitanio?" in {
 
@@ -54,7 +54,7 @@ class ProjectSpec extends FreeSpec with Matchers {
     "Vegeta come una semilla del hermitaño pero krilin le hace 10 de daño" in {
 
 
-      var krilin2 = Guerrero("krilin", 100, 120, List(ataque1), Humano, List(SemillaHermitanio), Normal)
+      var krilin2 = Guerrero("krilin", 100, 1200, List(ataque1), Humano, List(SemillaHermitanio), Normal)
       var vegeta2 = Guerrero("vegeta", 100, 1200, List(usarItem(SemillaHermitanio)), Sayajin(12, false, false), List(SemillaHermitanio), Normal)
 
 
@@ -76,6 +76,20 @@ class ProjectSpec extends FreeSpec with Matchers {
 
 
 
+    }
+
+    "kiabe ataca a krilin con macenko + kamehameHa" in {
+
+     // kiabe: Tiene 500ki - 30 por usar macenko y -10 por usar kamehameHa. Krilin le tira x1 kamehameHa (-20)
+      //Krilin: Solo sabe hacer el kamehameHa.
+      // Krilin recibe -10 por usar kamehameHa y recibe -80 (60 macenko + 20 kamehameHa) de kiabe
+      // Krilin en el segundo turno no puede contestar con el kamehameHa porque tiene solo 10 de Ki
+      val (kiabeCansado, krilinMatado): (Guerrero, Guerrero) = kiabe.pelearContra(krilin)(List(macenko,kamehameHa))
+
+
+      val (kiKiabe, kiDeKrilin) =  (kiabeCansado.ki, krilinMatado.ki)
+
+      (kiKiabe, kiDeKrilin) shouldBe (440,10)
     }
   }
 

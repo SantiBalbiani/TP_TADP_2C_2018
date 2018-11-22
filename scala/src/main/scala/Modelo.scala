@@ -163,11 +163,10 @@ object Modelo {
           if (unPlan.nonEmpty) {
             val estado: (Guerrero,Guerrero) = pelearRound(unPlan.head)(unOponente)
             val planActualizado = unPlan.tail
-
-            if (planActualizado.nonEmpty) {
-              pelearContra(estado._2)(planActualizado)
-            }else{
-              estado}
+          //  if (planActualizado.nonEmpty) {
+              estado._1.pelearContra(estado._2)(planActualizado)
+           // }else{
+             // estado}
           }else{
             (this, unOponente)}
         case None => (this, unOponente)
