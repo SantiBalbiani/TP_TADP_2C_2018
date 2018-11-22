@@ -1,5 +1,7 @@
-import MovimientosBasicos.prioridadAtaque
+
 import scala.language.postfixOps
+// Requerido por enunciado Req#2
+import MovimientosBasicos.prioridadAtaque
 
 object Modelo {
   //================= MOVIMIENTO ===============================================================================
@@ -64,7 +66,26 @@ object Modelo {
 
   //================================================================================================================
 
-  case class Guerrero(nombre: String, ki: Int, kiMax: Int, movs: List[Movimiento], tipo: Especie, inventario: List[Item], estado: Estado) {
+  case class Guerrero(nombre: String,
+                      ki: Int,
+                      kiMax: Int,
+                      movs: List[Movimiento],
+                      tipo: Especie,
+                      inventario: List[Item],
+                      estado: Estado) {
+    require(ki >= 0, "no puede tener ki negativo")
+    require(ki <= kiMax, "no puede tener mas ki que su maximo")
+    require((estado == Muerto && ki == 0) || (estado != Muerto && ki > 0),"Si no tiene ki esta muerto, y si tiene ki esta vivo")
+
+
+
+    def actualizarEstado: Guerrero = {
+
+      if (ki <= 0){
+        this.copy(estado = Muerto)
+      }
+      this
+    }
 
     def tieneElItem(unItem: Item): Boolean = {
       this.inventario.contains(unItem)
@@ -83,7 +104,7 @@ object Modelo {
       // TODO no hace falta el tipo "MovimientosCalificados" (solo se usa acá)
       // DONE: Borrado (Santi)
       movs.map { unMov =>
-        ((unCriterio(unMov.ejecutarMov(this, unGuerrero)._1, unMov.ejecutarMov(this, unGuerrero)._2)).abs, unMov)
+        (unCriterio(unMov.ejecutarMov(this, unGuerrero)._1, unMov.ejecutarMov(this, unGuerrero)._2).abs, unMov)
       }.maxBy(_._1)._2
       // TODO si el criterio es negativo el movimiento no vale
       // Usé ABS para tomar el de mayor modulo... es un DONE?

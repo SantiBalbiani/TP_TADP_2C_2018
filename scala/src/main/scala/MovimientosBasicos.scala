@@ -8,7 +8,7 @@ object MovimientosBasicos {
     g1.tipo match {
       case Androide(_) => (g1.copy(), g2.copy())
       case Sayajin(ssjLvl, _, _) if ssjLvl > 0 => (g1.copy(ki = g1.ki + 150 * ssjLvl), g2.copy())
-      case _ => (g1.copy(ki = g1.ki + 100), g2.copy())
+      case _ => (actualizarEstado(g1.copy(ki = g1.ki + 100)), g2.copy())
     }
   )
 
@@ -19,15 +19,15 @@ object MovimientosBasicos {
         //   Para hacer eso mismo es más cómodo usar pattern matching con algo como "Androide(xxx)"
         //   Para poder hacer pattern matching del guerrero junto con el item tenés que ponerlos en una tupla o algún otro objeto donde ambos estén juntos
         // DONE (Santi)
-        case (Arma(Roma),Androide(_)) => (g1.copy(), g2.copy(estado = Inconsciente))
-        case (Arma(Roma),_) => (g1.copy(), g2.copy())
+        case (Arma(Roma),Androide(_)) => (g1.copy(), g2.copy())
+        case (Arma(Roma),_) => (g1.copy(), g2.copy(estado = Inconsciente))
         case (Arma(Filosa),Sayajin(lvl, true, true)) =>(g1.copy(), g2.copy(ki = 1, tipo = Sayajin(lvl, false, false), estado = Inconsciente))
         case (Arma(Filosa),Sayajin(lvl, true, false)) => (g1.copy(), g2.copy(ki = 1, tipo = Sayajin(lvl, false, false)))
         case (Arma(Filosa),_) => (g1.copy(), g2.copy(ki = g2.ki - (g1.ki / 100)))
         case (Arma(Fuego(muni)),_) if muni > 0 =>
           g2 match {
-            case Guerrero(_, _, _, _, Humano, _, _) => (g1.copy(), g2.copy(ki = g2.ki - 20)) // Actualizar muni en g1
-            case Guerrero(_, _, _, _, Namekusein, _, Inconsciente) => (g1.copy(), g2.copy(ki = g2.ki - 10)) //Igual q arriba
+            case Guerrero(_, _, _, _, Humano, _, _) => (g1.copy(), actualizarEstado(g2.copy(ki = g2.ki - 20))) // Actualizar muni en g1
+            case Guerrero(_, _, _, _, Namekusein, _, Inconsciente) => (g1.copy(), actualizarEstado(g2.copy(ki = g2.ki - 10))) //Igual q arriba
             case _ => (g1.copy(), g2.copy())
           }
         case (SemillaHermitanio,_) => (g1.copy(ki = g1.kiMax), g2.copy())
@@ -73,14 +73,14 @@ object MovimientosBasicos {
 
   def muchosGolpesNinja(Fisico: TipoAtaque): Movimiento = Movimiento("GolpesNinja", (g1, g2) => (g1.tipo, g2.tipo) match{
     case (Humano, Androide(_)) => (g1.copy(ki = g1.ki - 10), g2.copy()) // Se lastima los Deditos
-    case (_,_) => if(g1.ki > g2.ki){(g1.copy(),g2.copy(ki=g2.ki-20))}else{(g1.copy(ki=g1.ki-20),g2.copy())}
+    case (_,_) => if(g1.ki > g2.ki){(g1.copy(),g2.copy(ki=g2.ki-20))}else{(actualizarEstado(g1.copy(ki=g1.ki-20)),g2.copy())}
   })
 
   def onda(energia:Int): Movimiento = Movimiento("OndaEnergia", (g1:Guerrero, g2: Guerrero) =>
     (g1.tipo, g2.tipo) match{
       case (Androide(bata), Monstruo(_,_)) =>
         (g1.copy(tipo = Androide(bata-energia)),g2.copy(ki = g2.ki-(energia*2)))
-      case (_,Monstruo(_,_)) =>  (g1.copy(), g2.copy(ki = g2.ki-(energia/2)))
+      case (_,Monstruo(_,_)) =>  ((g1.copy(), actualizarEstado(g2.copy(ki = g2.ki-(energia/2)))))
 
       case (Androide(batt),_) =>
         (g1.copy(tipo = Androide(batt-energia)),g2.copy(ki = g2.ki-(energia*2)))
@@ -95,5 +95,8 @@ object MovimientosBasicos {
   val mayorPuntosDeKi: Criterio = (g1: Guerrero, g2: Guerrero) => g2.ki
 
   val prioridadAtaque: Criterio = (g1: Guerrero, g2: Guerrero) => (g1.ki - g2.ki).abs
+
+  val actualizarEstado: Guerrero => Guerrero = (g1:Guerrero) =>
+    if (g1.ki <= 0) {g1.copy(estado = Muerto)} else if (g1.ki > g1.kiMax){g1.copy(ki = g1.kiMax)} else {g1.copy()}
 
 }
