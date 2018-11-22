@@ -77,10 +77,7 @@ object Modelo {
     require(ki <= kiMax, "no puede tener mas ki que su maximo")
     require((estado == Muerto && ki == 0) || (estado != Muerto && ki > 0),"Si no tiene ki esta muerto, y si tiene ki esta vivo")
 
-
-
     def actualizarEstado: Guerrero = {
-
       if (ki <= 0){
         this.copy(estado = Muerto)
       }
@@ -107,7 +104,7 @@ object Modelo {
         (unCriterio(unMov.ejecutarMov(this, unGuerrero)._1, unMov.ejecutarMov(this, unGuerrero)._2).abs, unMov)
       }.maxBy(_._1)._2
       // TODO si el criterio es negativo el movimiento no vale
-      // Usé ABS para tomar el de mayor modulo... es un DONE?
+      // Voy a retornar un NONE en caso que sea negativo (Santi)
     }
 
     def pelearRound(mov: Movimiento)(unOponente: Guerrero): (Guerrero, Guerrero) = {
@@ -163,17 +160,11 @@ object Modelo {
           if (unPlan.nonEmpty) {
             val estado: (Guerrero,Guerrero) = pelearRound(unPlan.head)(unOponente)
             val planActualizado = unPlan.tail
-          //  if (planActualizado.nonEmpty) {
-              estado._1.pelearContra(estado._2)(planActualizado)
-           // }else{
-             // estado}
-          }else{
+            estado._1.pelearContra(estado._2)(planActualizado)
+            }else{
             (this, unOponente)}
         case None => (this, unOponente)
       }
     }
-
-
   }
-
 }
