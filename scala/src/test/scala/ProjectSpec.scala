@@ -123,6 +123,8 @@ class ProjectSpec extends FreeSpec with Matchers {
           val vegeta3 = Guerrero("vegeta", 9000, 12000, List(kamehameHa), Humano, List(SemillaHermitanio), Normal)
           val h = krilin.planDeAtaqueContra(vegeta, 5)(prioridadAtaque)
 
+          println(h)
+
           h.size shouldEqual 5
 
         }
