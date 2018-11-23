@@ -96,16 +96,20 @@ object Modelo {
     }
 
     // TODO cuidado, el movimiento más efectivo podría no existír!
-    // Usar Option
+    // DONE: Si no existe movimiento mas efectivo retorna NONE (Santi)
     def movimientoMasEfectivoContra(unGuerrero: Guerrero)(unCriterio: Criterio): Option[Movimiento] = {
       // TODO no hace falta el tipo "MovimientosCalificados" (solo se usa acá)
       // DONE: Borrado (Santi)
-      Option(movs.map { unMov =>
+      val movsCalif: Option[(Int, Movimiento)] = Option(movs.map { unMov =>
         (unCriterio(unMov.ejecutarMov(this, unGuerrero)._1, unMov.ejecutarMov(this, unGuerrero)._2).abs, unMov)
-      }.maxBy(_._1)._2)
-      // TODO si el criterio es negativo el movimiento no vale
-      // Voy a retornar un NONE en caso que sea negativo (Santi)
+      }.maxBy(_._1))
+      movsCalif match {
+        case Some(movCalificado) => if(movCalificado._1 > 0) {Option(movCalificado._2)} else { None }
+        case None => None }
     }
+      // TODO si el criterio es negativo el movimiento no vale
+      //Retorna un NONE en caso que sea negativo (Santi)
+
 
     def pelearRound(mov: Movimiento)(unOponente: Guerrero): (Guerrero, Guerrero) = {
       val despuesDe1erMov: (Guerrero, Guerrero) = mov.ejecutarMov(this, unOponente)
