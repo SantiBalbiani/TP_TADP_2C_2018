@@ -75,7 +75,7 @@ object Modelo {
                       estado: Estado) {
     require(ki >= 0, "no puede tener ki negativo")
     require(ki <= kiMax, "no puede tener mas ki que su maximo")
-    require((estado == Muerto && ki == 0) || (estado != Muerto && ki > 0),"Si no tiene ki esta muerto, y si tiene ki esta vivo")
+    //require((estado == Muerto && ki == 0) || (estado != Muerto && ki > 0),"Si no tiene ki esta muerto, y si tiene ki esta vivo")
 
     def actualizarEstado: Guerrero = {
       if (ki <= 0){
@@ -100,18 +100,27 @@ object Modelo {
     def movimientoMasEfectivoContra(unGuerrero: Guerrero)(unCriterio: Criterio): Option[Movimiento] = {
       // TODO no hace falta el tipo "MovimientosCalificados" (solo se usa acá)
       // DONE: Borrado (Santi)
-      val movsCalif: Option[(Int, Movimiento)] = Option(movs.map { unMov =>
-        (unCriterio(unMov.ejecutarMov(this, unGuerrero)._1, unMov.ejecutarMov(this, unGuerrero)._2).abs, unMov)
-      }.maxBy(_._1))
-      movsCalif match {
-        case Some(movCalificado) => if(movCalificado._1 > 0) {Option(movCalificado._2)} else { None }
-        case None => None }
-    }
+      if (!unGuerrero.estaMuerto) {
+        val movsCalif: Option[(Int, Movimiento)] = Option(movs.map { unMov =>
+          (unCriterio(unMov.ejecutarMov(this, unGuerrero)._1, unMov.ejecutarMov(this, unGuerrero)._2).abs, unMov)
+        }.maxBy(_._1))
+        movsCalif match {
+          case Some(movCalificado) => if (movCalificado._1 > 0) {
+            Option(movCalificado._2)
+          } else {
+            None
+          }
+          case None => None
+        }
+      } else {
+        None
+      }
       // TODO si el criterio es negativo el movimiento no vale
-      //Retorna un NONE en caso que sea negativo (Santi)
-
+      //DONE: Retorna un NONE en caso que sea negativo (Santi)
+    }
 
     def pelearRound(mov: Movimiento)(unOponente: Guerrero): (Guerrero, Guerrero) = {
+
       val despuesDe1erMov: (Guerrero, Guerrero) = mov.ejecutarMov(this, unOponente)
       // TODO: ojo que estás usando "this" para el movimiento más efectivo (deberías usar el guerrero como quedó después del movimiento)
       // DONE (Santi)
@@ -129,36 +138,40 @@ object Modelo {
 
 
 
-    /*
+
     def planDeAtaqueContra(unOponente: Guerrero, cantRounds: Int)(unCriterio: Criterio): PlanDeAtaque = {
       // TODO se te va a complicar más pensar algo recursivo y a su vez mutable
       // var movimientos: Option[List[Movimiento]] = Some(List(movimientoMasEfectivoContra(unOponente)(unCriterio)))
-      
+
       // Esto devuelve un Option (Santi)
       // Englobar todo con un match que devuelva None si el primer mov determinado es None (Santi)
-      val mov: Movimiento = movimientoMasEfectivoContra(unOponente)(unCriterio) 
+      val mov: Option[Movimiento] = movimientoMasEfectivoContra(unOponente)(unCriterio)
       // val mov: Option[Movimiento] = movimientoMasEfectivoContra(unOponente)(unCriterio) // (Santi)
       // if mov is Some // (Santi)
-      val estadoP: (Guerrero, Guerrero) = pelearRound(mov)(unOponente)
-      // TODO evitá hacer return, preferí usar "else" 
-      if (estadoP._1.estaMuerto) {
-        None
-      } else if (estadoP._2.estaMuerto) {
-        // movimientos (lo reemplazé por la definición) => fijate que ahora se nota que hay un bug,
-        // si el otro está muerto me da una lista de 1 movimiento)
-        Some(List(movimientoMasEfectivoContra(unOponente)(unCriterio)))
-      } else if (cantRounds >= 0) {
-        planDeAtaqueContra(estadoP._2, cantRounds - 1)(unCriterio).map(movim =>
-          List[Movimiento](mov) ++ movim)
+      mov match{
+        case Some(unMovimiento) =>
 
+          val estadoP: (Guerrero, Guerrero) =   pelearRound(unMovimiento)(unOponente)
+          if (estadoP._1.estaMuerto) {
+            None
+          } else if (estadoP._2.estaMuerto) {
+            // movimientos (lo reemplazé por la definición) => fijate que ahora se nota que hay un bug,
+            // si el otro está muerto me da una lista de 1 movimiento)
+            Some(List(movimientoMasEfectivoContra(unOponente)(unCriterio)).map{Some_ => unMovimiento})
+          } else if (cantRounds >= 0) {
+            planDeAtaqueContra(estadoP._2, cantRounds - 1)(unCriterio).map(movim =>
+              List[Movimiento](unMovimiento) ++ movim)
+          }
+          else {
+            Some(List[Movimiento]())
+          }
+        case None => None
       }
-      else {
-        planDeAtaqueContra(estadoP._2, 0)(unCriterio).map(movim =>
-          List[Movimiento](mov) ++ movim)
-     }
-
     }
-    */
+
+      // TODO evitá hacer return, preferí usar "else"
+
+
     // TODO la única forma de estar seguro que el algoritmo funciona es haciendo tests (ejemplos de casos de tests):
     // - si yo estoy muerto
     // - si el otro está muerto
