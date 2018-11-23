@@ -34,8 +34,12 @@ class ProjectSpec extends FreeSpec with Matchers {
     "Saiyajin busca ataque mas conveniente para un Monstruo" in {
 
       var vegeta = Guerrero("vegeta", 100, 1200, List(kamehameHa,convertirseEnSSJ, muchosGolpesDeNinja), Sayajin(12, false, false), List(SemillaHermitanio), Normal)
-      val movimientoQueHaceMasDanio: Movimiento = vegeta.movimientoMasEfectivoContra(krilin)(prioridadAtaque)
-
+      val posibleMovimiento: Option[Movimiento] = vegeta.movimientoMasEfectivoContra(krilin)(prioridadAtaque)
+      var movimientoQueHaceMasDanio: Movimiento = comerSemillaDelErmitanio
+      posibleMovimiento match{
+        case Some(mov) => movimientoQueHaceMasDanio = mov
+        case None => None
+      }
       movimientoQueHaceMasDanio shouldEqual  muchosGolpesDeNinja
     }
 

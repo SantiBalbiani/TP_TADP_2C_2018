@@ -97,12 +97,12 @@ object Modelo {
 
     // TODO cuidado, el movimiento más efectivo podría no existír!
     // Usar Option
-    def movimientoMasEfectivoContra(unGuerrero: Guerrero)(unCriterio: Criterio): Movimiento = {
+    def movimientoMasEfectivoContra(unGuerrero: Guerrero)(unCriterio: Criterio): Option[Movimiento] = {
       // TODO no hace falta el tipo "MovimientosCalificados" (solo se usa acá)
       // DONE: Borrado (Santi)
-      movs.map { unMov =>
+      Option(movs.map { unMov =>
         (unCriterio(unMov.ejecutarMov(this, unGuerrero)._1, unMov.ejecutarMov(this, unGuerrero)._2).abs, unMov)
-      }.maxBy(_._1)._2
+      }.maxBy(_._1)._2)
       // TODO si el criterio es negativo el movimiento no vale
       // Voy a retornar un NONE en caso que sea negativo (Santi)
     }
@@ -111,9 +111,16 @@ object Modelo {
       val despuesDe1erMov: (Guerrero, Guerrero) = mov.ejecutarMov(this, unOponente)
       // TODO: ojo que estás usando "this" para el movimiento más efectivo (deberías usar el guerrero como quedó después del movimiento)
       // DONE (Santi)
-      val movOponente: Movimiento = despuesDe1erMov._2.movimientoMasEfectivoContra(despuesDe1erMov._1)(prioridadAtaque)
-      val resultRound: (Guerrero, Guerrero) = movOponente.ejecutarMov(despuesDe1erMov._2.copy(), despuesDe1erMov._1.copy())
-      (resultRound._2, resultRound._1)
+
+      val posibleMovimientoDelOponente: Option[Movimiento] = despuesDe1erMov._2.movimientoMasEfectivoContra(despuesDe1erMov._1)(prioridadAtaque)
+
+      posibleMovimientoDelOponente match{
+        case Some(movOponente) =>
+        val resultRound: (Guerrero, Guerrero) = movOponente.ejecutarMov(despuesDe1erMov._2.copy(), despuesDe1erMov._1.copy())
+        (resultRound._2, resultRound._1)
+        case None => despuesDe1erMov
+      }
+
     }
 
 
