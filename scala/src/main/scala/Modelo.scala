@@ -139,28 +139,31 @@ object Modelo {
 
 
 
-    def planDeAtaqueContra(unOponente: Guerrero, cantRounds: Int)(unCriterio: Criterio): PlanDeAtaque = {
+    def planDeAtaqueContra(unOponente: Guerrero, cantRounds: Int)(unCriterio: Criterio): Option[List[Movimiento]] = {
       // TODO se te va a complicar más pensar algo recursivo y a su vez mutable
      // Englobar todo con un match que devuelva None si el primer mov determinado es None (Santi)
-      if (cantRounds == 0) {
+
       val mov: Option[Movimiento] = movimientoMasEfectivoContra(unOponente)(unCriterio)
       mov match{
         case Some(unMovimiento) =>
-          val estadoP: (Guerrero, Guerrero) =   pelearRound(unMovimiento)(unOponente)
-          if (estadoP._1.estaMuerto || estadoP._2.estaMuerto  ) {
-            None
+          if (cantRounds == 0) {
+            Some(List[Movimiento]())
+          }else{
+            val estadoP: (Guerrero, Guerrero) =   pelearRound(unMovimiento)(unOponente)
+            if (estadoP._1.estaMuerto || estadoP._2.estaMuerto  ) {
+              None
+            }else  {
+              // movimientos (lo reemplazé por la definición) => fijate que ahora se nota que hay un bug,
+              // si el otro está muerto me da una lista de 1 movimiento)
 
-            // movimientos (lo reemplazé por la definición) => fijate que ahora se nota que hay un bug,
-            // si el otro está muerto me da una lista de 1 movimiento)
-
-          } else{
-            planDeAtaqueContra(estadoP._2, cantRounds - 1)(unCriterio).map(movim =>
-              List[Movimiento](unMovimiento) ++ movim)
+              estadoP._1.planDeAtaqueContra(estadoP._2, cantRounds - 1)(unCriterio).map(movim =>
+                List[Movimiento](unMovimiento) ++ movim)
+            }
+            
           }
         case None => None
       }
-    }else{ None
-      }}
+    }
 
       // TODO evitá hacer return, preferí usar "else"
 
