@@ -117,7 +117,21 @@ class ProjectSpec extends FreeSpec with Matchers {
       movsYaji shouldEqual None
     }
 
-        "planDeAtaqueContra si el plan que estoy armando con este criterio me deja muerto antes de N rounds" in {
+        "planDeAtaqueContra si el plan que estoy armando con este criterio lo mato antes de 6 rounds" in {
+
+          val krilin3 = Guerrero("krilin", 200, 12000, List(kamehameHa), Humano, List(SemillaHermitanio), Normal)
+          val vegeta3 = Guerrero("vegeta", 140, 300, List(kamehameHa), Humano, List(SemillaHermitanio), Normal)
+          val h = krilin3.planDeAtaqueContra(vegeta3, 6)(prioridadAtaque)
+
+
+
+          h.get.size shouldEqual 4
+
+        }
+
+
+
+           "planDeAtaqueContra si pido N rounds tengo que tener N movimientos" in {
 
           val krilin3 = Guerrero("krilin", 9000, 12000, List(kamehameHa), Humano, List(SemillaHermitanio), Normal)
           val vegeta3 = Guerrero("vegeta", 9000, 12000, List(kamehameHa), Humano, List(SemillaHermitanio), Normal)
@@ -127,30 +141,18 @@ class ProjectSpec extends FreeSpec with Matchers {
 
           h.get.size shouldEqual 5
 
-        }
-    /*
-           "planDeAtaqueContra si no puedo conseguir movimientos para los N rounds" in {
 
            }
+    "planDeAtaqueContra si el plan que estoy armando con este criterio me deja muerto antes de N rounds" in {
+      val krilin3 = Guerrero("krilin", 200, 12000, List(kamehameHa), Humano, List(SemillaHermitanio), Normal)
+      val vegeta3 = Guerrero("vegeta", 140, 300, List(kamehameHa), Humano, List(SemillaHermitanio), Normal)
+      val h = vegeta3.planDeAtaqueContra(krilin3, 6)(prioridadAtaque)
 
-           "planDeAtaqueContra si pido N rounds tengo que tener N movimientos" in {
+      h shouldEqual None
+    }
 
-           }
-
-           */
   }
 
 
-  /*
-      "probando Plan de Ataque" in {
-
-        var krilin = Guerrero("krilin", 10000, 12000, List(ataque1, ataque3, usarItem(SemillaHermitanio)), Humano, List(SemillaHermitanio), Normal)
-        var vegeta = Guerrero("vegeta", 10000, 12000, List(ataque1, ataque2, ataque3), Sayajin(12, false, false), List(SemillaHermitanio), Normal)
-        var h = krilin.planDeAtaqueContra(vegeta, 10)(prioridadAtaque)
-
-        h.size shouldEqual 10
-
-      }
-      */
 
 }

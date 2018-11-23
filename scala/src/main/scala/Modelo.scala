@@ -75,7 +75,7 @@ object Modelo {
                       estado: Estado) {
     require(ki >= 0, "no puede tener ki negativo")
     require(ki <= kiMax, "no puede tener mas ki que su maximo")
-    //require((estado == Muerto && ki == 0) || (estado != Muerto && ki > 0),"Si no tiene ki esta muerto, y si tiene ki esta vivo")
+
 
     def actualizarEstado: Guerrero = {
       if (ki <= 0){
@@ -146,11 +146,12 @@ object Modelo {
       val mov: Option[Movimiento] = movimientoMasEfectivoContra(unOponente)(unCriterio)
       mov match{
         case Some(unMovimiento) =>
-          if (cantRounds == 0) {
+
+            val estadoP: (Guerrero, Guerrero) =   pelearRound(unMovimiento)(unOponente)
+          if (cantRounds == 0 || estadoP._2.estaMuerto) {
             Some(List[Movimiento]())
           }else{
-            val estadoP: (Guerrero, Guerrero) =   pelearRound(unMovimiento)(unOponente)
-            if (estadoP._1.estaMuerto || estadoP._2.estaMuerto  ) {
+            if (estadoP._1.estaMuerto   ) {
               None
             }else  {
               // movimientos (lo reemplazé por la definición) => fijate que ahora se nota que hay un bug,
@@ -159,16 +160,18 @@ object Modelo {
               estadoP._1.planDeAtaqueContra(estadoP._2, cantRounds - 1)(unCriterio).map(movim =>
                 List[Movimiento](unMovimiento) ++ movim)
             }
-            
+
           }
         case None => None
       }
     }
 
       // TODO evitá hacer return, preferí usar "else"
+    //DONE(Santi)
 
 
     // TODO la única forma de estar seguro que el algoritmo funciona es haciendo tests (ejemplos de casos de tests):
+    // DONE: Testing completos (Santi)
     // - si yo estoy muerto
     // - si el otro está muerto
     // - si el plan que estoy armando con este criterio me deja muerto antes de N rounds
