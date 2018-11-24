@@ -31,13 +31,13 @@ object MovimientosBasicos {
         case (Arma(Fuego(muni)), _) if muni > 0 =>
           // TODO g1 debería tener la munición en el inventario
           g2 match {
-            case Guerrero(_, ki, _, _, Humano, _, _) => (g1, actualizarEstado(g2.copy(ki = (ki - 20).max(0)))) // Actualizar muni en g1
-            case Guerrero(_, _, _, _, Namekusein, _, Inconsciente) => (g1, actualizarEstado(g2.copy(ki = (g2.ki - 10).max(0)))) //Igual q arriba
+            case Guerrero(_, ki, _, _, Humano, _, _) => (g1.actualizarInventario(Arma(Fuego(muni))), actualizarEstado(g2.copy(ki = (ki - 20).max(0)))) // Actualizar muni en g1
+            case Guerrero(_, _, _, _, Namekusein, _, Inconsciente) => (g1.actualizarInventario(Arma(Fuego(muni))), actualizarEstado(g2.copy(ki = (g2.ki - 10).max(0)))) //Igual q arriba
             // TODO: te olvidaste de tu comentario :P (g1 pierde la municion luego de usarla)
             case _ => (g1, g2)
           }
         // TODO la semilla es la única que vale cuando está inconsciente
-        case (SemillaHermitanio, _) => (g1.copy(ki = g1.kiMax), g2)
+        case (SemillaHermitanio, _) => (g1.copy(ki = g1.kiMax).actualizarInventario(SemillaHermitanio), g2)
         case _ => (g1, g2)
       }
     } else {

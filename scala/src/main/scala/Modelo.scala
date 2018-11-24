@@ -91,6 +91,17 @@ object Modelo {
       inventario.contains(unItem)
     }
 
+    def actualizarInventario(unItem:Item): Guerrero = {
+
+      unItem match{
+        case SemillaHermitanio => this.copy(inventario = inventario.filter { Item => Item != unItem})
+        case Arma(Fuego(municion)) => this.copy(inventario = inventario.filter { Item => Item != unItem} ++ List(Arma(Fuego(municion - 1))))
+
+      }
+
+
+    }
+
     def estaMuerto: Boolean = {
       estado match {
         case Muerto => true
@@ -98,15 +109,22 @@ object Modelo {
       }
     }
 
+    def devolverMovimientos: List[Movimiento] ={
+      tipo match{
+        case Monstruo(habilidadesAdquiridas,_) => movs ++ habilidadesAdquiridas
+        case _ => movs
+      }
+    }
     def movimientoMasEfectivoContra(unGuerrero: Guerrero)(unCriterio: Criterio): Option[Movimiento] = {
 //      if (!unGuerrero.estaMuerto) {
         // TODO cuidad: te estás olvidando de los movimientos que guardaste en la especie "Monstruo"
+      // Done: hice metodo devolverMovimientos
         // - los guerreros podrían tener un mensaje para retornar sus movimientos pero sigue siendo peligroso hacer pattern matching contra el atributo movimientos (porque son solo algunos, no todos)...
       if (movs.nonEmpty) {
       //val movsCalif: Option[Movimiento] =
         Option(
           // TODO cuidado el "Option(" no hace nada más que convertir un null en None!
-          movs
+          devolverMovimientos
             .map { unMov =>
               val (a, b) = unMov.ejecutarMov(this, unGuerrero)
               // TODO cuidado! el criterio tiene condiciones sobre si es positivo o negativo, el "abs" rompe ese contrato!
