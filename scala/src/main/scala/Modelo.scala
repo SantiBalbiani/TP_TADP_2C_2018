@@ -5,6 +5,14 @@ import MovimientosBasicos.prioridadAtaque
 
 object Modelo {
 
+  //=============== RESULTADO PELEA ============================================================================
+
+  trait Resultado
+
+  case class Ganador(unGuerrero: Guerrero) extends Resultado
+
+  case class SiguenPeleando(peleadores: (Guerrero, Guerrero)) extends Resultado
+
   //================= MOVIMIENTO ===============================================================================
 
   case class Movimiento(nombre: String, ejecutarMov: MovimientoEfecto)
@@ -68,10 +76,6 @@ object Modelo {
 
   //================================================================================================================
 
-  trait Resultado
-
-  case class Ganador(unGuerrero: Guerrero) extends Resultado
-  case class SiguenPeleando(peleadores: (Guerrero, Guerrero)) extends Resultado
 
   case class Guerrero(nombre: String,
                       ki: Int,
@@ -82,15 +86,6 @@ object Modelo {
                       estado: Estado) {
     require(ki >= 0, "no puede tener ki negativo")
     require(ki <= kiMax, "no puede tener mas ki que su maximo")
-
-    //    def actualizarEstado: Guerrero = {
-    //      if (ki <= 0) {
-    //        // TODO: CUIDADO! este copy no va a ningún lado nunca (siempre va a retornar el this de afuera del if)
-    //        this.copy(estado = Muerto)
-    //      }
-    //      this
-    //    }
-    // TODO: igual veo que no lo estás usando... ya fue
 
     def tieneElItem(unItem: Item): Boolean = {
       inventario.contains(unItem)
@@ -107,17 +102,23 @@ object Modelo {
 //      if (!unGuerrero.estaMuerto) {
         // TODO cuidad: te estás olvidando de los movimientos que guardaste en la especie "Monstruo"
         // - los guerreros podrían tener un mensaje para retornar sus movimientos pero sigue siendo peligroso hacer pattern matching contra el atributo movimientos (porque son solo algunos, no todos)...
-        val movsCalif: Option[(Int, Movimiento)] = Option(
+      if (movs.nonEmpty) {
+      //val movsCalif: Option[Movimiento] =
+        Option(
           // TODO cuidado el "Option(" no hace nada más que convertir un null en None!
           movs
             .map { unMov =>
               val (a, b) = unMov.ejecutarMov(this, unGuerrero)
               // TODO cuidado! el criterio tiene condiciones sobre si es positivo o negativo, el "abs" rompe ese contrato!
-              (unCriterio(a, b).abs, unMov)
+              // DONE: abs quitado
+              (unCriterio(a, b), unMov)
             }
             // TODO cuidado, el maxBy tira exception si la lista es vacía
-            .maxBy(_._1)
-        )
+            // DONE: Pregunto si la lista es vacía antes
+            .maxBy(_._1)._2
+        )}else{
+        None
+      }
         //        movsCalif match {
         //          case Some((i, movimiento)) => if (i > 0) {
         //            Some(movimiento)
@@ -127,7 +128,7 @@ object Modelo {
         //          case None => None
         //        }
         // TODO esto es una forma similar de hacer la condicion anterior (pero más compacta)
-        movsCalif.filter(_._1 > 0).map(_._2)
+       // movsCalif.filter(_._1 > 0).map(_._2)
 //      } else {
 //        None
 //      }
