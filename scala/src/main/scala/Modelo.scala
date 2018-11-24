@@ -68,6 +68,11 @@ object Modelo {
 
   //================================================================================================================
 
+  trait Resultado
+
+  case class Ganador(unGuerrero: Guerrero) extends Resultado
+  case class SiguenPeleando(peleadores: (Guerrero, Guerrero)) extends Resultado
+
   case class Guerrero(nombre: String,
                       ki: Int,
                       kiMax: Int,
@@ -174,18 +179,27 @@ object Modelo {
         }
     }
 
-    def pelearContra(unOponente: Guerrero)(unPlan: List[Movimiento]): (Guerrero, Guerrero) = {
+    def retornarResultado(guerreros:(Guerrero, Guerrero)): Resultado = {
+      guerreros match{
+        case (Guerrero(_, _, _, _, _, _, Muerto), Guerrero(_, _, _, _, _, _, Muerto)) => Ganador(guerreros._1)
+        case (Guerrero(_, _, _, _, _, _, _), Guerrero(_, _, _, _, _, _, Muerto)) => Ganador(guerreros._1)
+        case (Guerrero(_, _, _, _, _, _, Muerto), Guerrero(_, _, _, _, _, _, _)) => Ganador(guerreros._2)
+        case (Guerrero(_, _, _, _, _, _, _), _) => SiguenPeleando(guerreros)
+      }
+    }
+
+    def pelearContra(unOponente: Guerrero)(unPlan: List[Movimiento]): Resultado = {
       val plan = Option(unPlan)
       plan match {
         case Some(unPlan) =>
-          if (unPlan.nonEmpty) {
+          if (unPlan.nonEmpty || (this.ki == 0) || (unOponente.ki == 0)) {
             val estado: (Guerrero, Guerrero) = pelearRound(unPlan.head)(unOponente)
             val planActualizado = unPlan.tail
             estado._1.pelearContra(estado._2)(planActualizado)
           } else {
-            (this, unOponente)
+            retornarResultado(this, unOponente)
           }
-        case None => (this, unOponente)
+        case None => retornarResultado(this, unOponente)
       }
     }
   }

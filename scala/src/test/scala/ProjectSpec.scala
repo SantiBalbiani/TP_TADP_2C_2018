@@ -76,8 +76,8 @@ class ProjectSpec extends FreeSpec with Matchers {
       //Krilin: Solo sabe hacer el kamehameHa.
       // Krilin recibe -10 por usar kamehameHa y recibe -80 (60 macenko + 20 kamehameHa) de kiabe
       // Krilin en el segundo turno no puede contestar con el kamehameHa porque tiene solo 10 de Ki
-      val (kiabeCansado, krilinMatado): (Guerrero, Guerrero) = kiabe.pelearContra(krilin)(List(macenko, kamehameHa))
-      val (kiKiabe, kiDeKrilin) = (kiabeCansado.ki, krilinMatado.ki)
+      val SiguenPeleando(guerreros): Resultado = kiabe.pelearContra(krilin)(List(macenko, kamehameHa))
+      val (kiKiabe, kiDeKrilin) = (guerreros._1.ki, guerreros._2.ki)
 
       (kiKiabe, kiDeKrilin) shouldBe(440, 10)
     }
