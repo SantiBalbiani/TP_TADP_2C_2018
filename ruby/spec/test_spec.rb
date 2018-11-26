@@ -66,7 +66,41 @@ describe 'Matchers Básicos - Simbolo - Valor - Tipo - Lista' do
 
   it 'Combinación de Matcher de Lista con Matcher de Simbolo' do
 
-    expect(PatternMatching.new.list([:uno,:dos,:tres,:cuatro]).call([1,2,3,4]))
+    expect(PatternMatching.new.list([:uno,:dos,:tres,:cuatro]).call([1,2,3,4])).to eq(true)
+
+  end
+
+end
+
+describe 'Duck Typing' do
+
+  psyduck = Object.new
+  def psyduck.cuack
+    'psy..duck?'
+  end
+  def psyduck.fly
+    '(headache)'
+  end
+
+  class Dragon
+    def fly
+      'do some flying'
+    end
+  end
+  a_dragon = Dragon.new
+
+
+
+
+  it 'Conoce los mensajes, es un Pato' do
+
+expect(PatternMatching.new.duck(psyduck.methods(false)).call(psyduck)).to eq(true)
+
+  end
+
+  it 'Un dragon no sabe decir cuack' do
+
+    expect(PatternMatching.new.duck(psyduck.methods(false)).call(a_dragon)).to eq(false)
 
   end
 
