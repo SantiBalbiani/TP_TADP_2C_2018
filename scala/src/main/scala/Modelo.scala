@@ -116,25 +116,17 @@ object Modelo {
       }
     }
     def movimientoMasEfectivoContra(unGuerrero: Guerrero)(unCriterio: Criterio): Option[Movimiento] = {
-//      if (!unGuerrero.estaMuerto) {
-        // TODO cuidad: te estás olvidando de los movimientos que guardaste en la especie "Monstruo"
-      // Done: hice metodo devolverMovimientos
-        // - los guerreros podrían tener un mensaje para retornar sus movimientos pero sigue siendo peligroso hacer pattern matching contra el atributo movimientos (porque son solo algunos, no todos)...
       if (movs.nonEmpty) {
-      //val movsCalif: Option[Movimiento] =
+        // TODO este option siempre es Some (es más natural usar Some directamente)
         Option(
-          // TODO cuidado el "Option(" no hace nada más que convertir un null en None!
           devolverMovimientos
             .map { unMov =>
               val (a, b) = unMov.ejecutarMov(this, unGuerrero)
-              // TODO cuidado! el criterio tiene condiciones sobre si es positivo o negativo, el "abs" rompe ese contrato!
-              // DONE: abs quitado
               (unCriterio(a, b), unMov)
             }
-            // TODO cuidado, el maxBy tira exception si la lista es vacía
-            // DONE: Pregunto si la lista es vacía antes
             .maxBy(_._1)._2
-        )}else{
+        )
+      }else{
         None
       }
         //        movsCalif match {
@@ -203,18 +195,20 @@ object Modelo {
         case (Guerrero(_, _, _, _, _, _, Muerto), Guerrero(_, _, _, _, _, _, Muerto)) => Ganador(guerreros._1)
         case (Guerrero(_, _, _, _, _, _, _), Guerrero(_, _, _, _, _, _, Muerto)) => Ganador(guerreros._1)
         case (Guerrero(_, _, _, _, _, _, Muerto), Guerrero(_, _, _, _, _, _, _)) => Ganador(guerreros._2)
-        case (Guerrero(_, _, _, _, _, _, _), _) => SiguenPeleando(guerreros)
+        // TODO era más facil "_"
+        case _ => SiguenPeleando(guerreros)
       }
     }
 
     def pelearContra(unOponente: Guerrero)(unPlan: List[Movimiento]): Resultado = {
+      // TODO: plan nunca va a ser None (Option(<algo>) solo retorna None si <algo> es null)
       val plan = Option(unPlan)
       plan match {
         case Some(unPlan) =>
-          if (unPlan.nonEmpty || (this.ki == 0) || (unOponente.ki == 0)) {
+          if (unPlan.nonEmpty /* TODO el control del ki aca creo que no tiene sentido || (this.ki == 0) || (unOponente.ki == 0)*/) {
+            // TODO la condición de si alguno murió hay que hacerla antes de seguir peleando los siguientes rounds
             val estado: (Guerrero, Guerrero) = pelearRound(unPlan.head)(unOponente)
-            val planActualizado = unPlan.tail
-            estado._1.pelearContra(estado._2)(planActualizado)
+            estado._1.pelearContra(estado._2)(unPlan.tail)
           } else {
             retornarResultado(this, unOponente)
           }
