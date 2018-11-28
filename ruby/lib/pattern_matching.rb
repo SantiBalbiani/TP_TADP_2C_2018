@@ -1,4 +1,3 @@
-
 class Symbol
   def call(something)
     true
@@ -24,7 +23,6 @@ class PatternMatching
   end
 
 end
-
 
 
 class ValueMatcher
@@ -68,18 +66,19 @@ class ListMatcher
 
     if match_size
 
-      if list.all? { |e| e.is_a?(Symbol)}
+      # TODO no está bueno preguntar por symbol acá
+      if list.all? {|e| e.is_a?(Symbol)}
         list.all? {|e| e.call('something')}
       else
         list.all? {|e| list_to_compare.include?(e)}
       end
 
     else
-
+      # TODO ojo con el codigo repetido
       if list_to_compare.all? {|e| e.is_a?(Symbol)}
-      list_to_compare.all? {|e| e.call('something')}
+        list_to_compare.all? {|e| e.call('something')}
       else
-      list_to_compare.all? {|e| list.include?(e)}
+        list_to_compare.all? {|e| list.include?(e)}
       end
     end
   end
@@ -95,6 +94,8 @@ class DuckTypingMatcher
 
   def call(anObject)
 
+    # TODO es mejor verificar con "respond_to?" porque podría responder al mensaje usando (por ejemplo) method missing
+    # TODO Ojo que estás probando que todos los métodos no heredados del objeto estén incluidos en la lista que te pasaron, cuando lo que tenés que probar es que los que te pasaron los "tiene"/"entiende" el objeto
     anObject.class.instance_methods(false).all? {|m| mensajes.include?(m)}
 
   end
