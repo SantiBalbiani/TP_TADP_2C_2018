@@ -100,7 +100,7 @@ describe 'Duck Typing' do
 
   it 'Conoce los mensajes, es un Pato' do
 
-expect(PatternMatching.new.duck(psyduck.methods(false)).call(psyduck)).to eq(true)
+expect(PatternMatching.new.duck(psyduck.methods).call(psyduck)).to eq(true)
 
   end
 

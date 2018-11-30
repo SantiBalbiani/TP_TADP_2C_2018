@@ -67,11 +67,16 @@ class ListMatcher
     if match_size
 
       # TODO no está bueno preguntar por symbol acá
+
+      self.list.sort == list_to_compare.sort
+
+=begin
       if list.all? {|e| e.is_a?(Symbol)}
         list.all? {|e| e.call('something')}
       else
         list.all? {|e| list_to_compare.include?(e)}
       end
+=end
 
     else
       # TODO ojo con el codigo repetido
@@ -89,15 +94,17 @@ class DuckTypingMatcher
   attr_accessor :mensajes
 
   def initialize(*mensajes)
-    self.mensajes = mensajes
+    self.mensajes = *mensajes
   end
 
   def call(anObject)
 
     # TODO es mejor verificar con "respond_to?" porque podría responder al mensaje usando (por ejemplo) method missing
     # TODO Ojo que estás probando que todos los métodos no heredados del objeto estén incluidos en la lista que te pasaron, cuando lo que tenés que probar es que los que te pasaron los "tiene"/"entiende" el objeto
-    anObject.class.instance_methods(false).all? {|m| mensajes.include?(m)}
-
+    # DONE: Ahora usa respond_to
+    los_mensajes = mensajes.flatten
+    los_mensajes.all? do |un_mensaje|
+      anObject.respond_to?(un_mensaje)
+    end
   end
-
 end
