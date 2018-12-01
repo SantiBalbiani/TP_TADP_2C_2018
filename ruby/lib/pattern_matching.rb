@@ -42,13 +42,13 @@ class PatternMatching
   end
 
   def AND(*matchers, el_padre)
-    ini_and = proc do |matchrs|
+    instanciar_matchers = proc do |matchrs|
       a = AND_Matcher.new matchrs
       a.padre = self
       a
     end
 
-    el_padre.instance_exec( matchers, &ini_and )
+    el_padre.instance_exec( matchers, &instanciar_matchers )
   end
 
 end
@@ -151,9 +151,5 @@ class AND_Matcher < Compositor
   def call(algo)
     (hijos.all? { |hijo| hijo.call(algo) }) && padre.call(algo)
    end
-
-  def papu
-    @padre
-  end
 
 end
