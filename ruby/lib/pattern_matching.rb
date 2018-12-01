@@ -4,6 +4,20 @@ class Symbol
   end
 end
 
+class Object
+
+  def type(algo)
+    PatternMatching.new.type(algo)
+  end
+  def duck(*algo)
+    PatternMatching.new.duck(*algo)
+  end
+  def val(unVal)
+    PatternMatching.new.val(unVal)
+  end
+
+end
+
 class Compositor
 
   attr_accessor :hijos
@@ -149,7 +163,7 @@ class AND_Matcher < Compositor
   attr_accessor :padre
 
   def call(algo)
-    (hijos.all? { |hijo| hijo.call(algo) }) && padre.call(algo)
-   end
+    get_hijos.flatten.all? { |hijo| hijo.call(algo) }
+  end
 
 end

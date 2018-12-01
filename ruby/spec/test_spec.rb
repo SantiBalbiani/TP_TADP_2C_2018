@@ -94,7 +94,7 @@ end
 describe 'Matcher AND' do
   it 'prueba simple AND' do
 
-    a = PatternMatching.new.val(5).AND(PatternMatching.new.type(Integer),PatternMatching.new.duck(:+))
+    a = PatternMatching.new.val(5).AND(type(Integer),duck(:+))
           expect(a.call(5)).to eq(true)
   end
 end
