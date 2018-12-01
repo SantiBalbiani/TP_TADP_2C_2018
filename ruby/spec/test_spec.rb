@@ -63,11 +63,21 @@ describe 'Matchers Básicos - Simbolo - Valor - Tipo - Lista' do
     expect(PatternMatching.new.list([1,2,3,4], false).call([1,2,3])).to eq(true)
 
     # TODO ojo que el alg. de las listas está mal
-    expect(PatternMatching.new.list([2,1,3,4], false).call([1,2,3])).to eq(false)
-    expect(PatternMatching.new.list([2,1,3,4], true).call([1,2,3])).to eq(false)
-    expect(PatternMatching.new.list([1,2,3], true).call([1,2,3,4])).to eq(false)
-    expect(PatternMatching.new.list([1,2,3], false).call([1,2,3,4])).to eq(true)
+    end
+    it 'test list 1' do
 
+    expect(PatternMatching.new.list([2,1,3,4], false).call([1,2,3])).to eq(false)
+
+    end
+    it 'test list 2 ' do
+    expect(PatternMatching.new.list([2,1,3,4], true).call([1,2,3])).to eq(false)
+    end
+
+  it 'test list 3' do
+    expect(PatternMatching.new.list([1,2,3], true).call([1,2,3,4])).to eq(false)
+  end
+  it 'test list 4' do
+    expect(PatternMatching.new.list([1,2,3], false).call([1,2,3,4])).to eq(true)
   end
 
   it 'Combinación de Matcher de Lista con Matcher de Simbolo' do

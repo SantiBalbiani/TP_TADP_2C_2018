@@ -57,34 +57,31 @@ class ListMatcher
 
   def initialize(alist, match_size)
 
-    self.list = alist
+    self.list = alist.map {|a_value|
+      if a_value.is_a?(Symbol)
+        a_value
+      else
+        ValueMatcher.new(a_value)
+      end}
     self.match_size = match_size
 
   end
 
   def call(list_to_compare)
 
+    aux = list.zip list_to_compare
+
     if match_size
 
       # TODO no está bueno preguntar por symbol acá
-
-      self.list.sort == list_to_compare.sort
-
-=begin
-      if list.all? {|e| e.is_a?(Symbol)}
-        list.all? {|e| e.call('something')}
-      else
-        list.all? {|e| list_to_compare.include?(e)}
-      end
-=end
+       (list_to_compare.length == list.length) && !aux.any? {|_,b| b.nil?} &&
+      (aux.all? {|elemLista1, elemLista2| elemLista1.call(elemLista2)})
 
     else
       # TODO ojo con el codigo repetido
-      if list_to_compare.all? {|e| e.is_a?(Symbol)}
-        list_to_compare.all? {|e| e.call('something')}
-      else
-        list_to_compare.all? {|e| list.include?(e)}
-      end
+
+      aux.all? {|elemLista1, elemLista2| elemLista1.call(elemLista2) || elemLista2.nil?}
+
     end
   end
 end
