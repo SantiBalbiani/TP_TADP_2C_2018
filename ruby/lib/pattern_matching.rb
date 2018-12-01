@@ -4,6 +4,21 @@ class Symbol
   end
 end
 
+class Compositor
+
+  attr_accessor :hijos
+
+  def initialize(matchers)
+    @hijos = matchers
+  end
+
+  def agregar(hijo)
+    @hijos.push(hijo)
+    hijo.padre = this
+  end
+
+end
+
 class PatternMatching
 
   def val(unVal)
@@ -22,12 +37,16 @@ class PatternMatching
     DuckTypingMatcher.new(*messages)
   end
 
+  def AND(*hijos)
+    AND_Matcher.new hijos
+  end
+
 end
 
 
 class ValueMatcher
 
-  attr_accessor :valor
+  attr_accessor :valor, :padre
 
   def initialize(aValue)
     self.valor = aValue
@@ -37,10 +56,16 @@ class ValueMatcher
     value == valor
   end
 
+  def AND(*cosas)
+
+    PatternMatching.new.AND(*cosas)
+
+  end
+
 end
 
 class TypeMatcher
-  attr_accessor :type
+  attr_accessor :type, :padre
 
   def initialize(aType)
     self.type = aType
@@ -53,7 +78,7 @@ class TypeMatcher
 end
 
 class ListMatcher
-  attr_accessor :list, :match_size
+  attr_accessor :list, :match_size, :padre
 
   def initialize(alist, match_size)
 
@@ -74,13 +99,16 @@ class ListMatcher
     if match_size
 
       # TODO no está bueno preguntar por symbol acá
-       (list_to_compare.length == list.length) && !aux.any? {|_,b| b.nil?} &&
-      (aux.all? {|elemLista1, elemLista2| elemLista1.call(elemLista2)})
+      # DONE: Lo pregunto mas arriba para llamarlo polimorficamente
+      (list_to_compare.length == list.length) &&
+          aux.none? { |_, b| b.nil?} &&
+          (aux.all? { |elem_lista_1, elem_lista_2| elem_lista_1.call(elem_lista_2)})
 
     else
       # TODO ojo con el codigo repetido
+      # DONE: Reducido a una sola línea
 
-      aux.all? {|elemLista1, elemLista2| elemLista1.call(elemLista2) || elemLista2.nil?}
+      aux.all? {|elem_lista_1, elem_lista_2| elem_lista_1.call(elem_lista_2) || elem_lista_2.nil?}
 
     end
   end
@@ -88,7 +116,7 @@ end
 
 class DuckTypingMatcher
 
-  attr_accessor :mensajes
+  attr_accessor :mensajes, :padre
 
   def initialize(*mensajes)
     self.mensajes = *mensajes
@@ -104,4 +132,14 @@ class DuckTypingMatcher
       anObject.respond_to?(un_mensaje)
     end
   end
+end
+
+
+class AND_Matcher < Compositor
+  attr_accessor :padre
+
+   def call(algo)
+    super.hijos.all? {|hijo| hijo.call(algo)} && padre.call(algo)
+  end
+
 end

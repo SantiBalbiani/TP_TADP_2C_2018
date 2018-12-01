@@ -63,6 +63,7 @@ describe 'Matchers Básicos - Simbolo - Valor - Tipo - Lista' do
     expect(PatternMatching.new.list([1,2,3,4], false).call([1,2,3])).to eq(true)
 
     # TODO ojo que el alg. de las listas está mal
+    # DONE: Corregido
     end
     it 'test list 1' do
 
@@ -117,6 +118,18 @@ expect(PatternMatching.new.duck(psyduck.methods).call(psyduck)).to eq(true)
   it 'Un dragon no sabe decir cuack' do
 
     expect(PatternMatching.new.duck(psyduck.methods(false)).call(a_dragon)).to eq(false)
+
+  end
+
+end
+
+describe 'Matcher AND' do
+
+  it 'prueba simple AND' do
+
+   PatternMatching.new.val(5).AND(type(Integer))
+
+    true
 
   end
 
