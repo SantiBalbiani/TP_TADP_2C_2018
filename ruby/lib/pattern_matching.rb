@@ -12,6 +12,10 @@ class Compositor
     @hijos = matchers
   end
 
+  def get_hijos
+    @hijos
+  end
+
   def agregar(hijo)
     @hijos.push(hijo)
     hijo.padre = this
@@ -37,8 +41,14 @@ class PatternMatching
     DuckTypingMatcher.new(*messages)
   end
 
-  def AND(*hijos)
-    AND_Matcher.new hijos
+  def AND(*matchers, el_padre)
+    ini_and = proc do |matchrs|
+      a = AND_Matcher.new matchrs
+      a.padre = self
+      a
+    end
+
+    el_padre.instance_exec( matchers, &ini_and )
   end
 
 end
@@ -58,7 +68,7 @@ class ValueMatcher
 
   def AND(*cosas)
 
-    PatternMatching.new.AND(*cosas)
+    PatternMatching.new.AND(*cosas, self)
 
   end
 
@@ -138,8 +148,12 @@ end
 class AND_Matcher < Compositor
   attr_accessor :padre
 
-   def call(algo)
-    super.hijos.all? {|hijo| hijo.call(algo)} && padre.call(algo)
+  def call(algo)
+    (hijos.all? { |hijo| hijo.call(algo) }) && padre.call(algo)
+   end
+
+  def papu
+    @padre
   end
 
 end
