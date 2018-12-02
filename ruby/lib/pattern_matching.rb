@@ -1,44 +1,47 @@
 class Symbol
-  def call(something)
+  def call(_something)
     true
   end
 end
 
 class Object
 
+
+  def matches?(un_obj, &bloque_match)
+    PatternMatching.new.matches?(un_obj, &bloque_match)
+  end
+
   def type(algo)
     PatternMatching.new.type(algo)
   end
+
   def duck(*algo)
     PatternMatching.new.duck(*algo)
   end
-  def val(unVal)
-    PatternMatching.new.val(unVal)
+
+  def val(un_val)
+    PatternMatching.new.val(un_val)
+  end
+
+  def list(*elems, match_size)
+    PatternMatching.new.list(elems, match_size)
   end
 
 end
 
-class Compositor
-
-  attr_accessor :hijos
-
-  def initialize(matchers)
+module Compositor
+  attr_accessor :hijos, :padre
+  def initialize(matchers = nil)
     @hijos = matchers
   end
-
-  def get_hijos
-    @hijos
+  def cargarPadre(un_matcher)
+    un_matcher.padre = self
+    un_matcher
   end
-
-  def agregar(hijo)
-    @hijos.push(hijo)
-    hijo.padre = this
-  end
-
 end
 
 class PatternMatching
-
+  include Compositor
   def val(unVal)
     ValueMatcher.new(unVal)
   end
@@ -55,43 +58,61 @@ class PatternMatching
     DuckTypingMatcher.new(*messages)
   end
 
-  def AND(*matchers, el_padre)
-    instanciar_matchers = proc do |matchrs|
-      a = AND_Matcher.new matchrs
-      a.padre = self
-      a
-    end
-    el_padre.instance_exec( matchers, &instanciar_matchers )
+  def AND(*matchers)
+    a = AND_Matcher.new matchers
+    cargarPadre(a)
   end
 
-  def OR(*matchers, el_padre)
-    instanciar_matchers = proc do |matchrs|
-      a = OR_Matcher.new matchrs
-      a.padre = self
-      a
-    end
-    el_padre.instance_exec( matchers, &instanciar_matchers )
-
+  def OR(*matchers)
+    a = OR_Matcher.new matchers
+    cargarPadre(a)
   end
 
-  def NOT(el_padre)
+  def NOT
+    a = NOT_Matcher.new
+    cargarPadre(a)
+  end
 
-    instanciar_not = proc do
-      a = NOT_Matcher.new
-      a.padre = self
-      a
-    end
+  def matches?(un_obj, &bloque_matcher)
 
-  el_padre.instance_eval &instanciar_not
+    a = Matcher.new(un_obj, &bloque_matcher)
+    ??
+  end
 
+  def with(*matchers, &bloqueLinea)
+    a = With_Matcher.new(matchers)
+    ??
+  end
+
+  def otherwise
+    ??
+  end
+
+  def do_binding
+    ??
+  end
+
+  def matchea?
+    ??
   end
 
 end
 
+class Matcher
+  attr_accessor :un_obj, :bloque
+def initialize(obj, &bloque_matcher)
+  self.un_obj = obj
+  self.bloque = bloque_matcher
+end
+end
 
-class ValueMatcher
+class With_Matcher < PatternMatching
+  include Compositor
+end
 
-  attr_accessor :valor, :padre
+class ValueMatcher < PatternMatching
+  include Compositor
+  attr_accessor :valor
 
   def initialize(aValue)
     self.valor = aValue
@@ -100,23 +121,11 @@ class ValueMatcher
   def call(value)
     value == valor
   end
-
-  def AND(*matchers)
-    PatternMatching.new.AND(*matchers, self)
-  end
-
-  def OR(*matchers)
-    PatternMatching.new.OR(*matchers, self)
-  end
-
-  def NOT
-    PatternMatching.new.NOT(self)
-  end
-
 end
 
-class TypeMatcher
-  attr_accessor :type, :padre
+class TypeMatcher < PatternMatching
+  include Compositor
+  attr_accessor :type
 
   def initialize(aType)
     self.type = aType
@@ -125,88 +134,71 @@ class TypeMatcher
   def call(value)
     value.is_a?(type)
   end
-
 end
 
-class ListMatcher
-  attr_accessor :list, :match_size, :padre
+class ListMatcher < PatternMatching
+  include Compositor
+  attr_accessor :list, :match_size
 
   def initialize(alist, match_size)
-
-    self.list = alist.map {|a_value|
+    self.list = alist.map { |a_value|
       if a_value.is_a?(Symbol)
         a_value
       else
         ValueMatcher.new(a_value)
-      end}
+      end
+    }
     self.match_size = match_size
-
   end
 
   def call(list_to_compare)
-
     aux = list.zip list_to_compare
-
     if match_size
-
-      # TODO no está bueno preguntar por symbol acá
+      # TODO: no está bueno preguntar por symbol acá
       # DONE: Lo pregunto mas arriba para llamarlo polimorficamente
       (list_to_compare.length == list.length) &&
-          aux.none? { |_, b| b.nil?} &&
-          (aux.all? { |elem_lista_1, elem_lista_2| elem_lista_1.call(elem_lista_2)})
+        aux.none? { |_, b| b.nil? } &&
+        (aux.all? { |elem_lista_1, elem_lista_2| elem_lista_1.call(elem_lista_2) })
 
     else
-      # TODO ojo con el codigo repetido
+      # TODO: ojo con el codigo repetido
       # DONE: Reducido a una sola línea
-
-      aux.all? {|elem_lista_1, elem_lista_2| elem_lista_1.call(elem_lista_2) || elem_lista_2.nil?}
-
+      aux.all? { |elem_lista_1, elem_lista_2| elem_lista_1.call(elem_lista_2) || elem_lista_2.nil? }
     end
   end
 end
 
-class DuckTypingMatcher
-
-  attr_accessor :mensajes, :padre
+class DuckTypingMatcher < PatternMatching
+  include Compositor
+  attr_accessor :mensajes
 
   def initialize(*mensajes)
     self.mensajes = *mensajes
   end
-
   def call(anObject)
-
-    # TODO es mejor verificar con "respond_to?" porque podría responder al mensaje usando (por ejemplo) method missing
+    # TODO: es mejor verificar con "respond_to?" porque podría responder al mensaje usando (por ejemplo) method missing
     # TODO Ojo que estás probando que todos los métodos no heredados del objeto estén incluidos en la lista que te pasaron, cuando lo que tenés que probar es que los que te pasaron los "tiene"/"entiende" el objeto
     # DONE: Ahora usa respond_to
-    los_mensajes = mensajes.flatten
-    los_mensajes.all? do |un_mensaje|
-      anObject.respond_to?(un_mensaje)
-    end
+    mensajes.flatten.all? do |un_mensaje| anObject.respond_to?(un_mensaje) end
   end
 end
 
-
-class AND_Matcher < Compositor
-  attr_accessor :padre
-
+class AND_Matcher < PatternMatching
+  include Compositor
   def call(algo)
-    get_hijos.flatten.all? { |hijo| hijo.call(algo) } && padre.call(algo)
+    hijos.flatten.all? { |hijo| hijo.call(algo) } && padre.call(algo)
   end
-
 end
 
-class OR_Matcher < Compositor
-  attr_accessor :padre
-
+class OR_Matcher < PatternMatching
+  include Compositor
   def call(algo)
-    get_hijos.flatten.all? { |hijo| hijo.call(algo) } || padre.call(algo)
+    hijos.flatten.all? { |hijo| hijo.call(algo) } || padre.call(algo)
   end
 end
 
-class NOT_Matcher
-
-  attr_accessor :padre
-
+class NOT_Matcher < PatternMatching
+  include Compositor
   def call(algo)
     !padre.call(algo)
   end
