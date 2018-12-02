@@ -97,4 +97,31 @@ describe 'Matcher AND' do
     a = PatternMatching.new.val(5).AND(type(Integer),duck(:+))
           expect(a.call(5)).to eq(true)
   end
+
+  it '2da prueba simple AND' do
+
+    a = PatternMatching.new.val(4).AND(type(Integer),duck(:+))
+    expect(a.call(5)).to eq(false)
+  end
+end
+
+describe 'Matcher OR' do
+
+  it 'prueba Simple OR' do
+
+   a = PatternMatching.new.val(4).OR(type(Integer),duck(:+))
+
+   expect(a.call(5)).to eq(true)
+  end
+
+end
+
+describe 'Matcher NOT' do
+
+  it 'prueba Simple NOT' do
+
+    a = PatternMatching.new.val(4).NOT
+    expect(a.call(5)).to eq(true)
+  end
+
 end

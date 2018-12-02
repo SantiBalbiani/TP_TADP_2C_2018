@@ -61,8 +61,29 @@ class PatternMatching
       a.padre = self
       a
     end
-
     el_padre.instance_exec( matchers, &instanciar_matchers )
+  end
+
+  def OR(*matchers, el_padre)
+    instanciar_matchers = proc do |matchrs|
+      a = OR_Matcher.new matchrs
+      a.padre = self
+      a
+    end
+    el_padre.instance_exec( matchers, &instanciar_matchers )
+
+  end
+
+  def NOT(el_padre)
+
+    instanciar_not = proc do
+      a = NOT_Matcher.new
+      a.padre = self
+      a
+    end
+
+  el_padre.instance_eval &instanciar_not
+
   end
 
 end
@@ -80,10 +101,16 @@ class ValueMatcher
     value == valor
   end
 
-  def AND(*cosas)
+  def AND(*matchers)
+    PatternMatching.new.AND(*matchers, self)
+  end
 
-    PatternMatching.new.AND(*cosas, self)
+  def OR(*matchers)
+    PatternMatching.new.OR(*matchers, self)
+  end
 
+  def NOT
+    PatternMatching.new.NOT(self)
   end
 
 end
@@ -163,7 +190,24 @@ class AND_Matcher < Compositor
   attr_accessor :padre
 
   def call(algo)
-    get_hijos.flatten.all? { |hijo| hijo.call(algo) }
+    get_hijos.flatten.all? { |hijo| hijo.call(algo) } && padre.call(algo)
   end
 
+end
+
+class OR_Matcher < Compositor
+  attr_accessor :padre
+
+  def call(algo)
+    get_hijos.flatten.all? { |hijo| hijo.call(algo) } || padre.call(algo)
+  end
+end
+
+class NOT_Matcher
+
+  attr_accessor :padre
+
+  def call(algo)
+    !padre.call(algo)
+  end
 end
