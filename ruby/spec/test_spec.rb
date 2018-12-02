@@ -170,6 +170,32 @@ describe 'TodosLosMatcherJuntos!' do
   end
 end
 
+describe 'probando el with' do
+
+  it ' El patternMatcher guarda un with patron con una lista con valores y el bloque ' do
+
+    a = PatternMatching.new.with(list([1, 2, 3])) { 'hola' }
+
+  end
+
+  it ' El patternMatcher guarda un with patron con una lista con diferentes matchers y el bloque ' do
+
+    a = PatternMatching.new.with(list([:a, val(2), duck(:+)])) { a + 2 }
+
+    true
+
+  end
+
+=begin
+  it ' Guarda un patron con Otherwise ' do
+
+  end
+=end
+
+
+end
+
+=begin
 describe 'Matches?' do
   it 'test inicial' do
     x = [1, 2, 3]
@@ -182,4 +208,5 @@ describe 'Matches?' do
    true
   end
 end
+=end
 

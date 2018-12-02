@@ -2,14 +2,17 @@ class Symbol
   def call(_something)
     true
   end
+
 end
 
 class Object
 
 
+=begin
   def matches?(un_obj, &bloque_match)
     PatternMatching.new.matches?(un_obj, &bloque_match)
   end
+=end
 
   def type(algo)
     PatternMatching.new.type(algo)
@@ -23,10 +26,16 @@ class Object
     PatternMatching.new.val(un_val)
   end
 
-  def list(*elems, match_size)
+  def list(elems, match_size = true)
     PatternMatching.new.list(elems, match_size)
   end
 
+end
+
+module Binder
+  def bind(_un_obj)
+    true
+  end
 end
 
 module Compositor
@@ -38,10 +47,15 @@ module Compositor
     un_matcher.padre = self
     un_matcher
   end
+  def is_a_matcher?(un_obj)
+    un_obj.is_a?(Symbol) || un_obj.is_a?(PatternMatching)
+  end
 end
 
 class PatternMatching
   include Compositor
+  attr_accessor :patron, :bloque_patron
+
   def val(unVal)
     ValueMatcher.new(unVal)
   end
@@ -73,44 +87,27 @@ class PatternMatching
     cargarPadre(a)
   end
 
-  def matches?(un_obj, &bloque_matcher)
-
-    a = Matcher.new(un_obj, &bloque_matcher)
-    ??
-  end
-
   def with(*matchers, &bloqueLinea)
-    a = With_Matcher.new(matchers)
-    ??
+    self.patron = matchers
+    self.bloque_patron = bloqueLinea
+    self
   end
 
-  def otherwise
-    ??
+  def otherwise(&bloqueLinea)
+    self.patron = true
+    self.bloque_patron = bloqueLinea
+
+    self
   end
 
-  def do_binding
-    ??
+  def do_binding(un_obj)
+    matchers.each{|unMatcher| unMatcher.bind(un_obj)}
   end
 
-  def matchea?
-    ??
-  end
-
-end
-
-class Matcher
-  attr_accessor :un_obj, :bloque
-def initialize(obj, &bloque_matcher)
-  self.un_obj = obj
-  self.bloque = bloque_matcher
-end
-end
-
-class With_Matcher < PatternMatching
-  include Compositor
 end
 
 class ValueMatcher < PatternMatching
+  include Binder
   include Compositor
   attr_accessor :valor
 
@@ -121,9 +118,12 @@ class ValueMatcher < PatternMatching
   def call(value)
     value == valor
   end
+
+
 end
 
 class TypeMatcher < PatternMatching
+  include Binder
   include Compositor
   attr_accessor :type
 
@@ -141,8 +141,9 @@ class ListMatcher < PatternMatching
   attr_accessor :list, :match_size
 
   def initialize(alist, match_size)
-    self.list = alist.map { |a_value|
-      if a_value.is_a?(Symbol)
+    self.list = alist
+                    .map { |a_value|
+      if is_a_matcher?(a_value)
         a_value
       else
         ValueMatcher.new(a_value)
@@ -155,7 +156,7 @@ class ListMatcher < PatternMatching
     aux = list.zip list_to_compare
     if match_size
       # TODO: no está bueno preguntar por symbol acá
-      # DONE: Lo pregunto mas arriba para llamarlo polimorficamente
+      # DONE: Lo pregunto mas arriba para llamarlo polimórficamente
       (list_to_compare.length == list.length) &&
         aux.none? { |_, b| b.nil? } &&
         (aux.all? { |elem_lista_1, elem_lista_2| elem_lista_1.call(elem_lista_2) })
