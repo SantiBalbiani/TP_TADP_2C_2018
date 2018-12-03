@@ -186,11 +186,23 @@ describe 'probando el with' do
 
   end
 
-=begin
-  it ' Guarda un patron con Otherwise ' do
 
+  it ' Guarda un patron con Otherwise ' do
+    a = PatternMatching.new.otherwise { a + 2 }
   end
-=end
+
+  it 'Prueba de Matches?' do
+
+    x = [1, 2, 3]
+    h = matches?(x) do
+      with(list([:a, val(3), duck(:+)])) { a + 2 }
+      with(list([1, 2, 5])) { 'acá no llego' }
+      otherwise { 'acá si llego' }
+    end
+
+    expect(h).to eq('acá si llego')
+  end
+
 
 
 end

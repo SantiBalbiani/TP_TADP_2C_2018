@@ -1,5 +1,10 @@
 class Symbol
   def call(_something)
+    bindear(_something)
+    true
+  end
+
+  def bindear(_unavariable)
     true
   end
 
@@ -7,12 +12,9 @@ end
 
 class Object
 
-
-=begin
   def matches?(un_obj, &bloque_match)
-    PatternMatching.new.matches?(un_obj, &bloque_match)
+    Matcher.new(un_obj, &bloque_match).matches?
   end
-=end
 
   def type(algo)
     PatternMatching.new.type(algo)
@@ -39,9 +41,10 @@ module Binder
 end
 
 module Compositor
-  attr_accessor :hijos, :padre
+  attr_accessor :hijos, :padre, :stack_patrones
   def initialize(matchers = nil)
     @hijos = matchers
+    @stack_patrones ||= []
   end
   def cargarPadre(un_matcher)
     un_matcher.padre = self
@@ -87,16 +90,25 @@ class PatternMatching
     cargarPadre(a)
   end
 
+  def cargar_patron(un_patron, un_bloque_linea)
+
+    self.patron = un_patron
+    self.bloque_patron = un_bloque_linea
+    self
+  end
+
+
   def with(*matchers, &bloqueLinea)
     self.patron = matchers
     self.bloque_patron = bloqueLinea
+    @stack_patrones.push(PatternMatching.new.cargar_patron(matchers, bloqueLinea))
     self
   end
 
   def otherwise(&bloqueLinea)
-    self.patron = true
+    self.patron = [:siempre_pasa]
     self.bloque_patron = bloqueLinea
-
+    @stack_patrones.push(PatternMatching.new.cargar_patron(self.patron, bloqueLinea))
     self
   end
 
@@ -104,6 +116,27 @@ class PatternMatching
     matchers.each{|unMatcher| unMatcher.bind(un_obj)}
   end
 
+end
+
+class Matcher
+  attr_accessor :obj, :bloque_gral, :bloques
+  def initialize(un_obj,&bloque_match)
+    self.obj = un_obj
+    self.bloque_gral = bloque_match
+    self.bloques ||= []
+  end
+  def matches?
+    pm = PatternMatching.new.instance_exec &bloque_gral
+    j = 1 + 1
+    los_ganadores = pm.stack_patrones.select { |un_pattern_matching| un_pattern_matching.patron.first.call(@obj)}
+
+    el_patron_ganador = los_ganadores.first.bloque_patron
+
+    el_patron_ganador.call(@obj)
+
+
+
+  end
 end
 
 class ValueMatcher < PatternMatching
