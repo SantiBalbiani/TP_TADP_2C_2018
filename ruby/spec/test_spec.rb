@@ -225,7 +225,18 @@ describe 'probando el with' do
 
     expect(h).to eq(3)
   end
-  
+
+
+  it 'Cuando no hay match' do
+
+    x = [1, 2, 3]
+    expect do
+      matches?(x) do
+      with(list([:a, val(1), duck(:+)])) { a + 2 }
+      with(list([1, 2, 5])) { 'acá no llego' }
+      end
+    end.to raise_error(No_Hubo_Match)
+  end
 end
 
 

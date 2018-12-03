@@ -1,3 +1,6 @@
+class No_Hubo_Match < Exception
+end
+
 class Symbol
   def call(_something)
     true
@@ -33,11 +36,6 @@ class Object
 
 end
 
-module Binder
-  def bind(_un_obj)
-    true
-  end
-end
 
 module Compositor
   attr_accessor :hijos, :padre, :stack_patrones
@@ -111,9 +109,7 @@ class PatternMatching
     self
   end
 
-  def do_binding(un_obj)
-    matchers.each{|unMatcher| unMatcher.bind(un_obj)}
-  end
+
 
 end
 
@@ -130,9 +126,14 @@ class Matcher
     if primer_patron.call(obj)
       patrones.first
     else
-      ganador(patrones.drop(1), obj)
+      otros_patrones = patrones.drop(1)
+      if otros_patrones.empty?
+        raise No_Hubo_Match, 'No hubo Match para ninguna instrucción'
+      else
+        ganador(otros_patrones, obj)
+      end
     end
-  end
+    end
 
   def matches?
     pm = PatternMatching.new.instance_exec &bloque_gral
@@ -147,7 +148,7 @@ class Matcher
 end
 
 class ValueMatcher < PatternMatching
-  include Binder
+
   include Compositor
   attr_accessor :valor
 
@@ -163,7 +164,7 @@ class ValueMatcher < PatternMatching
 end
 
 class TypeMatcher < PatternMatching
-  include Binder
+
   include Compositor
   attr_accessor :type
 
