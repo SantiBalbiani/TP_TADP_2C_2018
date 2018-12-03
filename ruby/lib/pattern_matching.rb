@@ -121,7 +121,7 @@ class Matcher
     self.bloques ||= []
   end
 
-  def ganador(patrones, obj)
+  def hay_match?(patrones, obj)
     primer_patron = patrones.first.patron.first
     if primer_patron.call(obj)
       patrones.first
@@ -130,7 +130,7 @@ class Matcher
       if otros_patrones.empty?
         raise No_Hubo_Match, 'No hubo Match para ninguna instrucción'
       else
-        ganador(otros_patrones, obj)
+        hay_match?(otros_patrones, obj)
       end
     end
     end
@@ -138,7 +138,7 @@ class Matcher
   def matches?
     pm = PatternMatching.new.instance_exec &bloque_gral
 
-   el_patron_ganador = ganador(pm.stack_patrones,@obj)
+   el_patron_ganador = hay_match?(pm.stack_patrones,@obj)
 
     bloque = el_patron_ganador.bloque_patron
 
