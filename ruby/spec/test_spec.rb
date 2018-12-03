@@ -191,11 +191,22 @@ describe 'probando el with' do
     a = PatternMatching.new.otherwise { a + 2 }
   end
 
+  it 'Prueba de Binding' do
+
+    x = [1, 2, 3]
+    h = matches?(x) do
+      with(list([:a, val(2), duck(:+)])) { a + 2 }
+      end
+
+    expect(h).to eq(3)
+  end
+
+
   it 'Prueba de Matches?' do
 
     x = [1, 2, 3]
     h = matches?(x) do
-      with(list([:a, val(3), duck(:+)])) { a + 2 }
+      with(list([:a, val(1), duck(:+)])) { a + 2 }
       with(list([1, 2, 5])) { 'acá no llego' }
       otherwise { 'acá si llego' }
     end

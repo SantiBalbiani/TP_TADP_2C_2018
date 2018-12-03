@@ -1,11 +1,10 @@
 class Symbol
   def call(_something)
-    bindear(_something)
     true
   end
 
-  def bindear(_unavariable)
-    true
+  def bindear(method_nombre, valor_variable, un_patron)
+    un_patron.define_singleton_method(method_nombre.to_sym) { valor_variable }
   end
 
 end
@@ -130,9 +129,11 @@ class Matcher
     j = 1 + 1
     los_ganadores = pm.stack_patrones.select { |un_pattern_matching| un_pattern_matching.patron.first.call(@obj)}
 
-    el_patron_ganador = los_ganadores.first.bloque_patron
+    el_patron_ganador = los_ganadores.first
 
-    el_patron_ganador.call(@obj)
+    bloque = el_patron_ganador.bloque_patron
+
+    el_patron_ganador.patron.first.instance_exec &bloque
 
 
 
@@ -185,20 +186,36 @@ class ListMatcher < PatternMatching
     self.match_size = match_size
   end
 
+  def bindear(variables, un_patron)
+
+    variables.each do |a,b|
+      if a.is_a?(Symbol)
+      a.bindear(a, b, un_patron)
+      end
+    end
+
+  end
+
   def call(list_to_compare)
     aux = list.zip list_to_compare
+    result = false
     if match_size
       # TODO: no está bueno preguntar por symbol acá
       # DONE: Lo pregunto mas arriba para llamarlo polimórficamente
-      (list_to_compare.length == list.length) &&
+    result =   (list_to_compare.length == list.length) &&
         aux.none? { |_, b| b.nil? } &&
         (aux.all? { |elem_lista_1, elem_lista_2| elem_lista_1.call(elem_lista_2) })
 
     else
       # TODO: ojo con el codigo repetido
       # DONE: Reducido a una sola línea
-      aux.all? { |elem_lista_1, elem_lista_2| elem_lista_1.call(elem_lista_2) || elem_lista_2.nil? }
+     result = aux.all? { |elem_lista_1, elem_lista_2| elem_lista_1.call(elem_lista_2) || elem_lista_2.nil? }
     end
+
+    if result
+      bindear(aux, self)
+    end
+    result
   end
 end
 
