@@ -124,18 +124,24 @@ class Matcher
     self.bloque_gral = bloque_match
     self.bloques ||= []
   end
+
+  def ganador(patrones, obj)
+    primer_patron = patrones.first.patron.first
+    if primer_patron.call(obj)
+      patrones.first
+    else
+      ganador(patrones.drop(1), obj)
+    end
+  end
+
   def matches?
     pm = PatternMatching.new.instance_exec &bloque_gral
-    j = 1 + 1
-    los_ganadores = pm.stack_patrones.select { |un_pattern_matching| un_pattern_matching.patron.first.call(@obj)}
 
-    el_patron_ganador = los_ganadores.first
+   el_patron_ganador = ganador(pm.stack_patrones,@obj)
 
     bloque = el_patron_ganador.bloque_patron
 
     el_patron_ganador.patron.first.instance_exec &bloque
-
-
 
   end
 end
