@@ -83,113 +83,115 @@ describe 'Duck Typing' do
 
 
   it 'Conoce los mensajes, es un Pato' do
-expect(PatternMatching.new.duck(psyduck.methods).call(psyduck)).to eq(true)
+expect(PatternMatching.new.duck(*psyduck.methods).call(psyduck)).to eq(true)
+expect(PatternMatching.new.duck(:cuack).call(psyduck)).to eq(true)
   end
 
   it 'Un dragon no sabe decir cuack' do
-    expect(PatternMatching.new.duck(psyduck.methods(false)).call(a_dragon)).to eq(false)
+    expect(PatternMatching.new.duck(*psyduck.methods(false)).call(a_dragon)).to eq(false)
   end
 end
 
 describe 'Matcher AND' do
   it 'prueba simple AND' do
 
-    a = PatternMatching.new.val(5).AND(type(Integer),duck(:+))
+    a = PatternMatching.new.val(5).AND(PatternMatching.new.type(Integer), PatternMatching.new.duck(:+))
           expect(a.call(5)).to eq(true)
   end
 
   it '2da prueba simple AND' do
 
-    a = PatternMatching.new.val(4).AND(type(Integer),duck(:+))
+    a = PatternMatching.new.val(4).AND(PatternMatching.new.type(Integer),PatternMatching.new.duck(:+))
     expect(a.call(5)).to eq(false)
   end
 
   it '3ra prueba AND' do
-    a = PatternMatching.new.type(String).AND(val("Integer"),duck(:+))
+    a = PatternMatching.new.type(String).AND(PatternMatching.new.val("Integer"),PatternMatching.new.duck(:+))
     expect(a.call("5")).to eq(false)
   end
 end
 
-describe 'Matcher OR' do
+# describe 'Matcher OR' do
+#
+#   it 'prueba Simple OR' do
+#
+#    a = PatternMatching.new.val(4).OR(type(Integer),duck(:+))
+#
+#    expect(a.call(5)).to eq(true)
+#   end
+#
+#   it '2da prueba OR' do
+#     a = PatternMatching.new.type(String).OR(val("Integer"),duck(:+))
+#     expect(a.call('50')).to eq(true)
+#   end
+#
+#   it '3ra prueba OR' do
+#     a = PatternMatching.new.val(5).OR(type(Integer),duck(:+))
+#     expect(a.call(4)).to eq(true)
+#   end
+#
+# end
+#
+# describe 'Matcher NOT' do
+#
+#   it 'prueba Simple NOT' do
+#
+#     a = PatternMatching.new.val(4).NOT
+#     expect(a.call(5)).to eq(true)
+#   end
+#
+# end
 
-  it 'prueba Simple OR' do
 
-   a = PatternMatching.new.val(4).OR(type(Integer),duck(:+))
-
-   expect(a.call(5)).to eq(true)
-  end
-
-  it '2da prueba OR' do
-    a = PatternMatching.new.type(String).OR(val("Integer"),duck(:+))
-    expect(a.call('50')).to eq(true)
-  end
-
-  it '3ra prueba OR' do
-    a = PatternMatching.new.val(5).OR(type(Integer),duck(:+))
-    expect(a.call(4)).to eq(true)
-  end
-
-end
-
-describe 'Matcher NOT' do
-
-  it 'prueba Simple NOT' do
-
-    a = PatternMatching.new.val(4).NOT
-    expect(a.call(5)).to eq(true)
-  end
-
-end
-
-
-describe 'TodosLosMatcherJuntos!' do
-
-  it 'con AND-OR' do
-    a = PatternMatching.new.val(4).AND(type(Integer)).OR(duck(:+))
-    expect(a.call(4)).to eq(true)
-  end
-
-  it 'con AND-OR-NOT que de verdadero' do
-    a = PatternMatching.new.val(4).AND(type(String).NOT, duck(:zip)).OR(duck(:+))
-    expect(a.call(4)).to eq(true)
-  end
-
-  it 'con AND-OR-NOT que de falso' do
-    a = PatternMatching.new.val(4).AND(type(String), duck(:zip)).OR(duck(:+).NOT)
-    expect(a.call(4)).to eq(false)
-  end
-
-  it '2do AND-OR-NOT que de verdadero' do
-    a = PatternMatching.new.val(4).AND(type(String).NOT, type(Integer)).OR(duck(:+))
-    expect(a.call(4)).to eq(true)
-  end
-
-  it '3ro AND-OR-NOT que de verdadero' do
-    a = PatternMatching.new.type(Integer).AND(duck(:+), type(String).NOT).OR(type(String))
-    expect(a.call('4')).to eq(true)
-  end
-end
+# describe 'TodosLosMatcherJuntos!' do
+#
+#   it 'con AND-OR' do
+#     a = PatternMatching.new.val(4).AND(type(Integer)).OR(duck(:+))
+#     expect(a.call(4)).to eq(true)
+#   end
+#
+#   it 'con AND-OR-NOT que de verdadero' do
+#     a = PatternMatching.new.val(4).AND(type(String).NOT, duck(:zip)).OR(duck(:+))
+#     expect(a.call(4)).to eq(true)
+#   end
+#
+#   it 'con AND-OR-NOT que de falso' do
+#     a = PatternMatching.new.val(4).AND(type(String), duck(:zip)).OR(duck(:+).NOT)
+#     expect(a.call(4)).to eq(false)
+#   end
+#
+#   it '2do AND-OR-NOT que de verdadero' do
+#     a = PatternMatching.new.val(4).AND(type(String).NOT, type(Integer)).OR(duck(:+))
+#     expect(a.call(4)).to eq(true)
+#   end
+#
+#   it '3ro AND-OR-NOT que de verdadero' do
+#     a = PatternMatching.new.type(Integer).AND(duck(:+), type(String).NOT).OR(type(String))
+#     expect(a.call('4')).to eq(true)
+#   end
+# end
 
 describe 'probando el with' do
 
-  it ' El patternMatcher guarda un with patron con una lista con valores y el bloque ' do
-
-    a = PatternMatching.new.with(list([1, 2, 3])) { 'hola' }
-
-  end
-
-  it ' El patternMatcher guarda un with patron con una lista con diferentes matchers y el bloque ' do
-
-    a = PatternMatching.new.with(list([:a, val(2), duck(:+)])) { a + 2 }
-
-    true
-
-  end
-
-
-  it ' Guarda un patron con Otherwise ' do
-    a = PatternMatching.new.otherwise { a + 2 }
-  end
+  # it ' El patternMatcher guarda un with patron con una lista con valores y el bloque ' do
+  #
+  #   # TODO with necesariamente tiene que tener efecto (guardar algo en algún lado o tirar exceptions porque sino lo que haga el with no queda en ningún lado)
+  #   a = PatternMatching.new.with(PatternMatching.new.list([1, 2, 3])) { 'hola' }
+  #
+  # end
+  #
+  # it ' El patternMatcher guarda un with patron con una lista con diferentes matchers y el bloque ' do
+  #
+  #   a = PatternMatching.new.with(PatternMatching.new.list([:a, val(2), duck(:+)])) { a + 2 }
+  #
+  #   true
+  #
+  # end
+  #
+  #
+  # it ' Guarda un patron con Otherwise ' do
+  #   a = PatternMatching.new.otherwise { a + 2 }
+  # end
 
   it 'Prueba de matches? con Binding' do
 
