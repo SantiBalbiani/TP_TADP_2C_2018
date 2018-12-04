@@ -241,4 +241,18 @@ describe 'probando el with' do
   end
 end
 
+describe 'Prueba TP Individual' do
+  it 'prueba inicial' do
+    x = [1, 2, 3]
+
+     h = matches?(x) do
+        with(list([ :uno.if do odd? end , :dos , :tres ])) {uno + dos + tres}
+        otherwise { 1 }
+      end
+    expect(h).to eq 6
+
+  end
+end
+
+
 

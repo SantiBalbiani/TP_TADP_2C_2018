@@ -7,17 +7,6 @@ class Object
   end
 end
 
-class Symbol
-  include MatcherPostaPosta
-  def call(_something)
-    true
-  end
-
-  def bindear(valor_variable, un_patron)
-    un_patron.define_singleton_method(self) { valor_variable }
-  end
-end
-
 module MatcherPostaPosta
   def AND(*matchers)
     # TODO el unshift pone el "self" adelante de la lista (para mandarle la lista de matchers y el matcher al que le mandaron el "and")
@@ -41,6 +30,42 @@ module MatcherPostaPosta
     # nothing
   end
 end
+
+class Symbol
+  include MatcherPostaPosta
+  def call(_something)
+    true
+  end
+
+  def bindear(valor_variable, un_patron)
+    un_patron.define_singleton_method(self) { valor_variable }
+  end
+
+  def if(&condicion)
+    IF_MATCHER.new(self, &condicion)
+  end
+end
+
+class IF_MATCHER
+  include MatcherPostaPosta
+  def initialize( un_simbolo, &una_condicion)
+    @condicion = una_condicion
+    @simbolo = un_simbolo
+  end
+
+  def call(un_obj)
+   un_obj.instance_eval &@condicion
+  end
+
+  def bindear(algo, contexto)
+
+    @simbolo.bindear(algo, contexto)
+
+  end
+
+end
+
+
 
 class AlwaysTrueMatcher
   include MatcherPostaPosta
