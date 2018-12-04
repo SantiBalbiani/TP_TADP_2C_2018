@@ -7,6 +7,17 @@ class Object
   end
 end
 
+class Symbol
+  include MatcherPostaPosta
+  def call(_something)
+    true
+  end
+
+  def bindear(valor_variable, un_patron)
+    un_patron.define_singleton_method(self) { valor_variable }
+  end
+end
+
 module MatcherPostaPosta
   def AND(*matchers)
     # TODO el unshift pone el "self" adelante de la lista (para mandarle la lista de matchers y el matcher al que le mandaron el "and")
@@ -20,11 +31,11 @@ module MatcherPostaPosta
   def NOT
     NOT_Matcher.new(self)
   end
-=begin
+
   def call(valor)
     raise "Impl missing"
   end
-=end
+
 
   def bindear(valor, contexto)
     # nothing
@@ -43,7 +54,7 @@ class Pattern
   def initialize(matcher, block)
     @matcher = matcher
     @block = block
- #   @contexto = {}  #No se usa
+
   end
 
   def call(valor)
@@ -55,18 +66,6 @@ class Pattern
     self.instance_eval &@block
   end
 end
-
-class Symbol
-  include MatcherPostaPosta
-  def call(_something)
-    true
-  end
-
-  def bindear(valor_variable, un_patron)
-    un_patron.define_singleton_method(self) { valor_variable }
-  end
-end
-
 
 
 # TODO: estás mezclando el pattern matching (como contexto) con los matchers (los que se fijan si un valor matchea o no)
