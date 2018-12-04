@@ -1,6 +1,11 @@
 class No_Hubo_Match < Exception
 end
 
+class Object
+  def matches?(un_obj, &bloque_match)
+    Matcher.matches?(un_obj, &bloque_match)
+  end
+end
 
 module MatcherPostaPosta
   def AND(*matchers)
@@ -8,9 +13,18 @@ module MatcherPostaPosta
     AND_Matcher.new(*matchers.unshift(self))
   end
 
+  def OR(*matchers)
+    OR_Matcher.new(*matchers.unshift(self))
+  end
+
+  def NOT
+    NOT_Matcher.new(self)
+  end
+=begin
   def call(valor)
     raise "Impl missing"
   end
+=end
 
   def bindear(valor, contexto)
     # nothing
@@ -29,7 +43,7 @@ class Pattern
   def initialize(matcher, block)
     @matcher = matcher
     @block = block
-    @contexto = {}
+ #   @contexto = {}  #No se usa
   end
 
   def call(valor)
@@ -53,30 +67,7 @@ class Symbol
   end
 end
 
-class Object
 
-  def matches?(un_obj, &bloque_match)
-    Matcher.matches?(un_obj, &bloque_match)
-  end
-
-  # TODO: Estos mensajes es mejor que salgan de un instance_exec contra el "contexto" y así evitas contaminar Object
-  # def type(algo)
-  #   PatternMatching.new.type(algo)
-  # end
-  #
-  # def duck(*algo)
-  #   PatternMatching.new.duck(*algo)
-  # end
-  #
-  # def val(un_val)
-  #   PatternMatching.new.val(un_val)
-  # end
-  #
-  # def list(elems, match_size = true)
-  #   PatternMatching.new.list(elems, match_size)
-  # end
-
-end
 
 # TODO: estás mezclando el pattern matching (como contexto) con los matchers (los que se fijan si un valor matchea o no)
 # Los matchers no necesitan entender "val", "type", etc.
@@ -120,26 +111,6 @@ class PatternMatching
 end
 
 class Matcher
-  # attr_accessor :obj, :bloque_gral, :bloques
-  # def initialize(un_obj,&bloque_match)
-  #   self.obj = un_obj
-  #   self.bloque_gral = bloque_match
-  #   self.bloques ||= []
-  # end
-
-  # def hay_match?(patrones, obj)
-  #   primer_patron = patrones.first.patron.first
-  #   if primer_patron.call(obj)
-  #     patrones.first
-  #   else
-  #     otros_patrones = patrones.drop(1)
-  #     if otros_patrones.empty?
-  #       raise No_Hubo_Match, 'No hubo Match para ninguna instrucción'
-  #     else
-  #       hay_match?(otros_patrones, obj)
-  #     end
-  #   end
-  #   end
 
   def self.matches?(valor, &bloque_gral)
     # TODO dado que no tenés que pasarle parámetros, instance_eval hace lo mismo que instance_exec
@@ -153,7 +124,6 @@ class Matcher
     end
   end
 end
-
 
 class ValueMatcher #< PatternMatching
   include MatcherPostaPosta
@@ -269,16 +239,35 @@ class AND_Matcher
   end
 end
 
-# class OR_Matcher < PatternMatching
-#   include Compositor
-#   def call(algo)
-#     hijos.flatten.all? { |hijo| hijo.call(algo) } || padre.call(algo)
-#   end
-# end
-#
-# class NOT_Matcher < PatternMatching
-#   include Compositor
-#   def call(algo)
-#     !padre.call(algo)
-#   end
-# end
+class OR_Matcher
+  include MatcherPostaPosta
+
+  def initialize(*matchers)
+    @matchers = matchers
+  end
+
+  def call(algo)
+    @matchers.any? { |hijo| hijo.call(algo) }
+  end
+
+  def bindear(algo, contexto)
+    @matchers.each { |m| m.bindear(algo, contexto) }
+  end
+
+end
+
+class NOT_Matcher
+  include MatcherPostaPosta
+  def initialize(*matchers)
+    @matchers = matchers
+  end
+
+  def call(algo)
+    !@matchers.first.call(algo)
+  end
+
+  def bindear(algo, contexto)
+    @matchers.each { |m| m.bindear(algo, contexto) }
+  end
+
+end
