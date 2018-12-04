@@ -58,9 +58,7 @@ class IF_MATCHER
   end
 
   def bindear(algo, contexto)
-
     @simbolo.bindear(algo, contexto)
-
   end
 
 end

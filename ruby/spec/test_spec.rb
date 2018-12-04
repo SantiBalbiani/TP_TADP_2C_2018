@@ -252,6 +252,17 @@ describe 'Prueba TP Individual' do
     expect(h).to eq 6
 
   end
+
+  it 'segundo test' do
+    h = matches?( 10 ) do
+    with( :a_number .if do odd? end ){a_number}
+    with( :a_number .if do even? end ){a_number * 2}
+    with( :a_number .if do nil? end ){a_number / 2}
+  end
+
+  expect(h).to eq 20
+
+  end
 end
 
 
